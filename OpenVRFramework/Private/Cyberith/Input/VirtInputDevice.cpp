@@ -114,7 +114,7 @@ void FVirtInputDevice::Tick(float DeltaTime)
 	}
 	#endif
 }
-
+/*
 void FVirtInputDevice::SendControllerEvents()
 {
 	// Stop updating this function if our device is either null or closed,
@@ -123,6 +123,12 @@ void FVirtInputDevice::SendControllerEvents()
 
 	// Create user and device IDs
 	FPlatformUserId PlatformUserId = FPlatformMisc::GetPlatformUserForUserIndex(0);
+	if (PlatformUserId == INDEX_NONE) // Check if the user index is invalid
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Invalid PlatformUserId!"));
+		return;
+	}
+	
 	FInputDeviceId InputDeviceId;
 	InputDeviceId.CreateFromInternalId(0);
 	
@@ -134,6 +140,22 @@ void FVirtInputDevice::SendControllerEvents()
 	// Orientation, expressed in float (0 <-> 1)
 	const float orientation = m_virtDevice->GetPlayerOrientation();
 	MessageHandler->OnControllerAnalog(CyberithKeyNames::Orientation, PlatformUserId, InputDeviceId, orientation);
+}
+*/
+void FVirtInputDevice::SendControllerEvents()
+{
+	// Stop updating this function if our device is either null or closed,
+	if (m_virtDevice == nullptr || m_virtDevice->IsOpen() == false) 
+		return;
+
+	// Forward / Right axis movement
+	const FVector movement = m_virtDevice->GetMovementVector();
+	MessageHandler->OnControllerAnalog(CyberithKeyNames::MoveForward, 0, movement.X);
+	MessageHandler->OnControllerAnalog(CyberithKeyNames::MoveRight, 0, movement.Y);
+
+	// Orientation, expressed in float (0 <-> 1)
+	const float orientation = m_virtDevice->GetPlayerOrientation();
+	MessageHandler->OnControllerAnalog(CyberithKeyNames::Orientation, 0, orientation);
 }
 
 void FVirtInputDevice::SetMessageHandler(const TSharedRef<FGenericApplicationMessageHandler>& InMessageHandler)

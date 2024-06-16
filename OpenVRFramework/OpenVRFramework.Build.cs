@@ -65,7 +65,7 @@ public class OpenVRFramework : ModuleRules
 			string PluginName = "OpenVRFramework";
 
 			// Platform (Win32 / Win64)
-			string TargetPlatformStr = Target.Platform.ToString();
+			string TargetPlatformStr = "Win64";//Target.Platform.ToString();
 
 			// Directory - Input
 			string PluginBaseDirectory = Path.Combine(ModuleDirectory, "..", "..");
@@ -94,11 +94,12 @@ public class OpenVRFramework : ModuleRules
 // #endif
 
 			// DLL - Load
-			PublicDelayLoadDLLs.Add("CybSDK.dll");
+			PublicDelayLoadDLLs.Add( "CybSDK.dll");
 			
 			// DLL Auto-copying
 // #if UE_4_21_OR_LATER
 			RuntimeDependencies.Add(Path.Combine(CybSDKBinaryPath, "CybSDK.dll"));
+			//RuntimeDependencies.Add(Path.Combine(CybSDKBinaryPath, "CybSDK.dll"));
 // #else
 //			RuntimeDependencies.Add(new RuntimeDependency(Path.Combine(CybSDKBinaryPath, "CybSDK.dll")));	// in 4.25, 4.26 and later, we should use PublicAdditionalLibraries instead
 // #endif
