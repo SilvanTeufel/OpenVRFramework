@@ -81,21 +81,34 @@ void FOpenVRFrameworkModule::ShutdownModule()
 
 bool FOpenVRFrameworkModule::LoadNativeDll()
 {
-	#if PLATFORM_WINDOWS
+#if PLATFORM_WINDOWS
 	// Get the base directory of this plugin
 	const FString pluginBaseDir = IPluginManager::Get().FindPlugin("OpenVRFramework")->GetBaseDir();
-	const FString nativeBaseDir = FPaths::Combine(*pluginBaseDir, TEXT("Binaries/ThirdParty/CybSDK"));
+	const FString nativeBaseDir1 = FPaths::Combine(*pluginBaseDir, TEXT("Binaries/ThirdParty/CybSDK"));
+	const FString nativeBaseDir2 = FPaths::Combine(*pluginBaseDir, TEXT("Source/ThirdParty/CybSDK"));
 
-	// Add on the relative location of the third party dll and load it
+	// Function to construct the library path based on the base directory
+	auto GetLibraryPath = [](const FString& baseDir) -> FString
+	{
+#if PLATFORM_64BITS
+		return FPaths::Combine(*baseDir, TEXT("Win64/CybSDK.dll"));
+#else
+		return FPaths::Combine(*baseDir, TEXT("Win32/CybSDK.dll"));
+#endif
+	};
 
-	#if PLATFORM_64BITS
-		const FString libraryPath = FPaths::Combine(*nativeBaseDir, TEXT("Win64/CybSDK.dll"));
-	#else
-		const FString libraryPath = FPaths::Combine(*nativeBaseDir, TEXT("Win32/CybSDK.dll"));
-	#endif
-
+	// Attempt to load the DLL from the first location
+	FString libraryPath = GetLibraryPath(nativeBaseDir1);
 	m_cybSDKLibraryHandle = !libraryPath.IsEmpty() ? FPlatformProcess::GetDllHandle(*libraryPath) : nullptr;
 
+	// If the first attempt fails, try the second location
+	if (!m_cybSDKLibraryHandle)
+	{
+		libraryPath = GetLibraryPath(nativeBaseDir2);
+		m_cybSDKLibraryHandle = !libraryPath.IsEmpty() ? FPlatformProcess::GetDllHandle(*libraryPath) : nullptr;
+	}
+
+	// Check if the DLL was loaded successfully
 	if (!m_cybSDKLibraryHandle)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[CYBERITH] FCyberithPlugin: Failed to load CybSDK.dll"));
@@ -105,11 +118,11 @@ bool FOpenVRFrameworkModule::LoadNativeDll()
 
 	UE_LOG(LogTemp, Display, TEXT("[CYBERITH] FCybSDK_PluginModule: Loaded CybSDK V%d.%d"), CybSDK::Virt::GetSDKVersion() >> 8, CybSDK::Virt::GetSDKVersion() & 0xFF);
 	return true;
-	
-	#else
+
+#else
 	UE_LOG(LogTemp, Error, TEXT("[CYBERITH] FCybSDK_PluginModule: Unable to load CybSDK Dll on Platforms other than Windows!"));
 	return false;
-	#endif
+#endif
 }
 
 void FOpenVRFrameworkModule::UnloadNativeDll()

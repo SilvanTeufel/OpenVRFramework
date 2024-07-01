@@ -8,9 +8,11 @@ public class OpenVRFramework : ModuleRules
 {
 	public OpenVRFramework(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PrivateDependencyModuleNames.AddRange(new string[] { "AndroidPermission" });
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		
+		PrivateDependencyModuleNames.AddRange(new string[] { "AndroidPermission" });
+		
 		// Core dependencies
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayTags", "XRBase", "Landscape", "InputDevice" });
 
@@ -32,77 +34,74 @@ public class OpenVRFramework : ModuleRules
 		// Widget dependencies
 		PublicDependencyModuleNames.AddRange(new string[] { "UMG", "MoviePlayer" });
 		
-		// Cyberith depencies
-		//PublicDependencyModuleNames.AddRange(new string[] { "CybSDK", "UnrealEd" });
+#if UE_5_1_OR_LATER
+        // Cyberith dependencies for UE 5.1 or later
+        PrivateDependencyModuleNames.AddRange(new string[]
+        {
+            "ApplicationCore",
+        });
+#endif
 
-		// Cyberith depencies
-		PublicDependencyModuleNames.AddRange(new string[] { "UnrealEd", "Projects" });
-		
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+        // Projects
+        PublicDependencyModuleNames.AddRange(new string[]
+        {
+                "Projects"
+        });
+        PrivateDependencyModuleNames.AddRange(new string[]
+        {
+                "Projects"
+        });
 
-		if (Target.bBuildEditor)
-		{
-			PublicDependencyModuleNames.Add("UnrealEd");
-		}
-		
-		PrivateIncludePaths.AddRange(
-			new string[] {
-				"OpenVRFramework/Public",
-				//"CybSDK_Plugin/Public/Android",
-				"OpenVRFramework/Public/Cyberith/Components",
-				"OpenVRFramework/Public/Cyberith/CybSDK",
-				"OpenVRFramework/Public/Cyberith/Input",
-				"OpenVRFramework/Public/Cyberith/Standalone"
-				//"ThirdParty/CybSDK",
-				// ... add other private include paths required here ...
-			}
-		);
-		
-		if (Target.Platform == UnrealTargetPlatform.Win64 /*|| Target.Platform == UnrealTargetPlatform.Win32*/)
-		{
-			PrivateIncludePaths.Add("ThirdParty/CybSDK");
-			// Plugin name
-			string PluginName = "OpenVRFramework";
+        // Editor only dependencies
+        if (Target.bBuildEditor)
+        {
+            PublicDependencyModuleNames.AddRange(new string[]
+            {
+                "UnrealEd",
+                "Projects"
+            });
+        }
 
-			// Platform (Win32 / Win64)
-			string TargetPlatformStr = "Win64";//Target.Platform.ToString();
+        PrivateIncludePaths.AddRange(
+            new string[] {
+                "OpenVRFramework/Public",
+                "OpenVRFramework/Public/Cyberith/Components",
+                "OpenVRFramework/Public/Cyberith/CybSDK",
+                "OpenVRFramework/Public/Cyberith/Input",
+                "OpenVRFramework/Public/Cyberith/Standalone"
+            }
+        );
 
-			// Directory - Input
-			string PluginBaseDirectory = Path.Combine(ModuleDirectory, "..", "..");
-			// Directory - Output
-			string OutputDirectory = Path.Combine("$(TargetOutputDir)", "..", "..", "Plugins", PluginName);
+        if (Target.Platform == UnrealTargetPlatform.Win64)
+        {
+            PrivateIncludePaths.Add("ThirdParty/CybSDK");
 
-			// CybSDK source (not Unreal-related, Source, Lib, dlls
-			string CybSDKSourceDirectory = Path.Combine(PluginBaseDirectory, "Source", "ThirdParty", "CybSDK");
-			string CybSDKLibDirectory = Path.Combine(CybSDKSourceDirectory, TargetPlatformStr);
-			string CybSDKBinaryPath = Path.Combine(PluginBaseDirectory, "Binaries", "ThirdParty", "CybSDK", TargetPlatformStr);
-			string CybSDKDllPath = Path.Combine(CybSDKBinaryPath, "CybSDK.dll");
+            // Plugin name
+            string PluginName = "OpenVRFramework";
 
-			// Directories - Output
-			string OutputCybSDKBinaryPath = Path.Combine(OutputDirectory, "Binaries", "ThirdParty", "CybSDK", TargetPlatformStr);
-			string OutputCybSDKDllPath = Path.Combine(OutputCybSDKBinaryPath, "CybSDK.dll");
+            // Platform (Win64)
+            string TargetPlatformStr = "Win64";
 
-			// Include path to the .h
-			PublicIncludePaths.Add(CybSDKSourceDirectory);
-			PublicSystemIncludePaths.Add(CybSDKSourceDirectory);
+            // Directory - Input
+            string PluginBaseDirectory = Path.Combine(ModuleDirectory, "..", "..");
 
-			// Lib
-// #if UE_4_21_OR_LATER
-			PublicAdditionalLibraries.Add(Path.Combine(CybSDKLibDirectory, "CybSDK.lib"));
-// #else
-//			PublicLibraryPaths.Add(CybSDKLibDirectory); 	// in 4.25, 4.26 and later, we should use PublicAdditionalLibraries instead
-// #endif
+            // CybSDK source (not Unreal-related, Source, Lib, dlls)
+            string CybSDKSourceDirectory = Path.Combine(PluginBaseDirectory, "Source", "ThirdParty", "CybSDK");
+            string CybSDKLibDirectory = Path.Combine(CybSDKSourceDirectory, TargetPlatformStr);
+            string CybSDKBinaryPath = Path.Combine(PluginBaseDirectory, "Binaries", "ThirdParty", "CybSDK", TargetPlatformStr);
 
-			// DLL - Load
-			PublicDelayLoadDLLs.Add( "CybSDK.dll");
-			
-			// DLL Auto-copying
-// #if UE_4_21_OR_LATER
-			RuntimeDependencies.Add(Path.Combine(CybSDKBinaryPath, "CybSDK.dll"));
-			//RuntimeDependencies.Add(Path.Combine(CybSDKBinaryPath, "CybSDK.dll"));
-// #else
-//			RuntimeDependencies.Add(new RuntimeDependency(Path.Combine(CybSDKBinaryPath, "CybSDK.dll")));	// in 4.25, 4.26 and later, we should use PublicAdditionalLibraries instead
-// #endif
+            // Include path to the .h
+            PublicIncludePaths.Add(CybSDKSourceDirectory);
+            PublicSystemIncludePaths.Add(CybSDKSourceDirectory);
+
+            // Lib
+            PublicAdditionalLibraries.Add(Path.Combine(CybSDKLibDirectory, "CybSDK.lib"));
+
+            // DLL - Load
+            PublicDelayLoadDLLs.Add("CybSDK.dll");
+
+            // DLL Auto-copying
+            RuntimeDependencies.Add(Path.Combine(CybSDKBinaryPath, "CybSDK.dll"));
 		}
 	}
 }

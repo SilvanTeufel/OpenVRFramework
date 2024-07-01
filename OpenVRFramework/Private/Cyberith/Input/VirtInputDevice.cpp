@@ -8,7 +8,10 @@
 #include "GenericPlatform/IInputInterface.h"
 #include "Cyberith/CybSDKUtils.h"
 
-
+#if (ENGINE_MAJOR_VERSION > 5) || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
+#include "GenericPlatform/GenericPlatformInputDeviceMapper.h"
+#include "GenericPlatform/GenericPlatformMisc.h"
+#endif
 
 
 #if WITH_EDITOR
@@ -114,40 +117,34 @@ void FVirtInputDevice::Tick(float DeltaTime)
 	}
 	#endif
 }
-/*
+
+
 void FVirtInputDevice::SendControllerEvents()
 {
 	// Stop updating this function if our device is either null or closed,
 	if (m_virtDevice == nullptr || m_virtDevice->IsOpen() == false) 
 		return;
 
-	// Create user and device IDs
-	FPlatformUserId PlatformUserId = FPlatformMisc::GetPlatformUserForUserIndex(0);
-	if (PlatformUserId == INDEX_NONE) // Check if the user index is invalid
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Invalid PlatformUserId!"));
-		return;
-	}
-	
-	FInputDeviceId InputDeviceId;
-	InputDeviceId.CreateFromInternalId(0);
+#if (ENGINE_MAJOR_VERSION > 5) || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
+	//// Note: Since Unreal Engine 5.1, we had to rewrite to deal with the overall new way of mimicking controller input
+	////// Older function got deprecated with: UE_DEPRECATED(5.1, "This version of OnControllerAnalog has been deprecated, please use the one that takes an FPlatformUser and FInputDeviceId instead.")
 	
 	// Forward / Right axis movement
 	const FVector movement = m_virtDevice->GetMovementVector();
-	MessageHandler->OnControllerAnalog(CyberithKeyNames::MoveForward, PlatformUserId, InputDeviceId, movement.X);
-	MessageHandler->OnControllerAnalog(CyberithKeyNames::MoveRight, PlatformUserId, InputDeviceId, movement.Y);
+
+	// Remap the old int32 ControllerId to the new Platform user and device identifiers for backwards compatibility
+	FPlatformUserId UserId = FGenericPlatformMisc::GetPlatformUserForUserIndex(0); // Replace 0 with the appropriate ControllerId
+	FInputDeviceId DeviceId = INPUTDEVICEID_NONE;
+	IPlatformInputDeviceMapper::Get().RemapControllerIdToPlatformUserAndDevice(0, UserId, DeviceId); // Replace 0 with the appropriate ControllerId
+
+	// Forward / Right axis movement
+	MessageHandler->OnControllerAnalog(CyberithKeyNames::MoveForward, UserId, DeviceId, movement.X);
+	MessageHandler->OnControllerAnalog(CyberithKeyNames::MoveRight, UserId, DeviceId, movement.Y);
 
 	// Orientation, expressed in float (0 <-> 1)
 	const float orientation = m_virtDevice->GetPlayerOrientation();
-	MessageHandler->OnControllerAnalog(CyberithKeyNames::Orientation, PlatformUserId, InputDeviceId, orientation);
-}
-*/
-void FVirtInputDevice::SendControllerEvents()
-{
-	// Stop updating this function if our device is either null or closed,
-	if (m_virtDevice == nullptr || m_virtDevice->IsOpen() == false) 
-		return;
-
+	MessageHandler->OnControllerAnalog(CyberithKeyNames::Orientation, UserId, DeviceId, orientation);
+#else
 	// Forward / Right axis movement
 	const FVector movement = m_virtDevice->GetMovementVector();
 	MessageHandler->OnControllerAnalog(CyberithKeyNames::MoveForward, 0, movement.X);
@@ -156,6 +153,7 @@ void FVirtInputDevice::SendControllerEvents()
 	// Orientation, expressed in float (0 <-> 1)
 	const float orientation = m_virtDevice->GetPlayerOrientation();
 	MessageHandler->OnControllerAnalog(CyberithKeyNames::Orientation, 0, orientation);
+#endif
 }
 
 void FVirtInputDevice::SetMessageHandler(const TSharedRef<FGenericApplicationMessageHandler>& InMessageHandler)
