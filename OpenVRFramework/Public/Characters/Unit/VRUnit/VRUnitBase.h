@@ -28,36 +28,38 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-private:
+//private:
 	// VR Root Component
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR", meta = (AllowPrivateAccess = "true"))
-	class USceneComponent* VRRoot;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USceneComponent* VROrigin;
+	
+	// UCameraComponent Component for VR Headset
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR", meta = (AllowPrivateAccess = "true"))
+	class UCameraComponent* Camera;
 
-	// Motion Controller Component for VR Headset
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR", meta = (AllowPrivateAccess = "true"))
-	class UMotionControllerComponent* VRCamera;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR", meta = (AllowPrivateAccess = "true"))
-	FRotator HMDOrientation;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR", meta = (AllowPrivateAccess = "true"))
 	FVector HMDPosition;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR", meta = (AllowPrivateAccess = "true"))
+	FVector HMDOffset;
 	// Reference Z-Positions for normalization
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VR", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR", meta = (AllowPrivateAccess = "true"))
 	float StandingZ;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VR", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR", meta = (AllowPrivateAccess = "true"))
 	float KneelingZ;
 
 	// Normalized Z-Position
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "VR", meta = (AllowPrivateAccess = "true"))
 	float NormalizedZ;
 
 	// Function to update the rotation based on HMD orientation
 	UFUNCTION(BlueprintCallable)
 	void UpdateRotation();
 
+	UFUNCTION(BlueprintCallable)
+	void MoveJoystick( float X, float Y);
+	
 	// Function to normalize the HMD Z-Position
 	UFUNCTION(BlueprintCallable)
 	void NormalizeHMDZPosition();
