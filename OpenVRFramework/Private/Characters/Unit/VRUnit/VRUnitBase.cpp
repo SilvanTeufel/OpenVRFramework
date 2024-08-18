@@ -9,6 +9,7 @@
 #include "Components/CapsuleComponent.h" // Add this include
 #include "GameFramework/CharacterMovementComponent.h"
 
+
 // Sets default values
 AVRUnitBase::AVRUnitBase(const FObjectInitializer& ObjectInitializer):Super(ObjectInitializer)
 {
@@ -25,8 +26,6 @@ AVRUnitBase::AVRUnitBase(const FObjectInitializer& ObjectInitializer):Super(Obje
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(VROrigin);
 	GetMesh()->SetupAttachment(VROrigin);
-	//Camera->SetMobility(EComponentMobility::Movable);
-	//VRCamera->MotionSource = FXRMotionControllerBase::HMDSourceId;
 
 	// Initialize reference Z-Positions
 	StandingZ = 180.f;  // Example value, adjust according to your setup
@@ -58,21 +57,9 @@ AVRUnitBase::AVRUnitBase(const FObjectInitializer& ObjectInitializer):Super(Obje
 void AVRUnitBase::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// Get initial HMD position and rotation
-	//SetRotationAndPosition();
-	//SetActorLocation(FVector(HMDPosition.X, HMDPosition.Y, GetActorLocation().Z));
-	// Start the timer to switch the movement hand position every interval
-	//GetWorld()->GetTimerManager().SetTimer(MovementHandTimerHandle, this, &AVRUnitBase::SwitchMovementHandPosition, MovementHandInterval, true);
-	// Adjust the VRRoot position to align the VRCamera with the character's eye level
-	//FVector CharacterEyeLevel = FVector(0.0f, 0.0f, -70.f); // Assuming StandingZ is the eye level height
 	
-	// Set the new position for VRRoot to align the camera at eye level
-	//VRRoot->SetRelativeLocation(FVector(0.0f, 0.0f, 200.f));
 	// Null the actor with the HMD location
 	NullActorWithHMDLocation();
-	//CalibrateMotionControllers();
-
 }
 
 // Called every frame
@@ -86,11 +73,9 @@ void AVRUnitBase::Tick(float DeltaTime)
 	
 	CalculateHeadLocation(DeltaTime);
 	CalculateHandLocation(DeltaTime);
-	//VROrigin->SetRelativeLocation(FVector(0.f, 0.f, -120.f));
 
 	SetActorToHMDChange(DeltaTime);
 
-	//SetVROriginLocation();
 
 }
 
@@ -98,11 +83,6 @@ void AVRUnitBase::SetRotationAndPosition()
 {
 	UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HMDRotation, HMDPosition);
 	Camera->SetWorldRotation(HMDRotation);
-}
-void AVRUnitBase::SetVROriginLocation()
-{
-	FVector ActorLocation = GetActorLocation();
-	VROrigin->SetWorldLocation(FVector(ActorLocation.X, ActorLocation.Y, ActorLocation.Z-120.f));
 }
 
 void AVRUnitBase::UpdateRotation()
@@ -117,12 +97,9 @@ void AVRUnitBase::UpdateRotation()
 	// Only use the yaw rotation for the character
 	FRotator NewRotation =  FRotator(0.0f, HMDRotation.Yaw-90.f, 0.0f);
 	
-	// Set the character's rotation to match the HMD's yaw rotation
-	//	SetActorRotation(NewRotation); // This is not working because HMD is PART of the Actor. How can we take this into Account?
 	// Set the capsule component's rotation to match the HMD's yaw rotation
 	GetMesh()->SetRelativeRotation(NewRotation);
-	//SetActorRotation(NewRotation);
-	//SetActorRelativeRotation(NewRotation);
+
 }
 
 void AVRUnitBase::CalculateHeadLocation(float DeltaTime)
@@ -139,10 +116,7 @@ void AVRUnitBase::CalculateHeadLocation(float DeltaTime)
 
 	// For Z component, use the HMDPosition's Z directly, making it independent of the character's Z location
 	float ZComponent = 160.f; //HMDPosition.Z;
-
-	// Combine the components to create the HeadLocation vector
-	//HeadLocation = FVector(XComponent, YComponent, ZComponent);
-
+	
 	// Combine the components to create the HeadLocation vector
 	FVector TargetHeadLocation = FVector(XComponent, YComponent, ZComponent);
 
@@ -225,7 +199,6 @@ void AVRUnitBase::MoveJoystick( float X, float Y)
 
 		// Apply the movement input to the character
 		AddMovementInput(MovementDirection, 0.3f);
-		//CalculateHandLocation(GetWorld()->GetDeltaSeconds());
 	}
 }
 
@@ -278,37 +251,83 @@ void AVRUnitBase::SetActorToHMDChange(float DeltaTime)
 	}
 }
 
-void AVRUnitBase::CalibrateHands()
+void AVRUnitBase::AttachActorsToHand(FName SocketName, FVector HandLocation)
 {
-	LeftHandLocation = GetActorLocation() + LeftHandCalibrationLocation;
-	RightHandLocation = GetActorLocation() + RightHandCalibrationLocation;
-	
-	
-	LeftHandLocationOffset = LeftMotionController->GetComponentLocation()-LeftHandLocation;
-	RightHandLocationOffset = RightMotionController->GetComponentLocation()-RightHandLocation;
+	TArray<FHitResult> OutHits;
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.AddIgnoredActor(this);
+
+	GetWorld()->SweepMultiByChannel(
+		OutHits,
+		HandLocation,
+		HandLocation + FVector(1.0f, 0.0f, 0.0f), // small movement for detection
+		FQuat::Identity,
+		ECC_PhysicsBody,
+		FCollisionShape::MakeSphere(10.0f),
+		CollisionParams
+	);
+
+	for (const FHitResult& Hit : OutHits)
+	{
+		AActor* HitActor = Hit.GetActor();
+		if (HitActor && HitActor->GetRootComponent())
+		{
+			if (GetMesh()->DoesSocketExist(SocketName))
+			{
+				HitActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+				HitActor->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, SocketName);
+			}
+		}
+	}
 }
 
-void AVRUnitBase::CalibrateMotionControllers()
-{
+// Example Blueprint-callable function to attach actors to left and right hand sockets
 
-	RightMotionController->SetRelativeLocation(FVector(0.f, 0.f, 0.0f));
-	LeftMotionController->SetRelativeLocation(FVector(0.f, 0.f, 0.0f));
-	/*
+void AVRUnitBase::AttachActorsToLeftHand()
+{
+	AttachActorsToHand(LeftHandSocketName, LeftHandLocation);
+}
+
+
+void AVRUnitBase::AttachActorsToRightHand()
+{
+	AttachActorsToHand(RightHandSocketName, RightHandLocation);
+}
+
+
+void AVRUnitBase::DetachActorsFromHand(FName SocketName)
+{
 	if (GEngine)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Black, FString::Printf(TEXT("FVector::ZeroVector ___: %s"), *FVector::ZeroVector.ToString()));
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("DetachActorsFromHand called"));
 	}
-	if (RightMotionController)
+	// Get all components attached to the character's mesh
+	TArray<USceneComponent*> AttachedComponents;
+	GetMesh()->GetChildrenComponents(false, AttachedComponents);
+
+	// Loop through each attached component
+	for (USceneComponent* Component : AttachedComponents)
 	{
-		RightMotionController->SetRelativeLocation(FVector::ZeroVector);
-		RightMotionController->SetWorldLocation(FVector::ZeroVector);
-		RightMotionController->SetRelativeRotation(FRotator::ZeroRotator);
+		// Check if the component is attached to the specified socket
+		if (Component->GetAttachSocketName() == SocketName)
+		{
+			AActor* AttachedActor = Component->GetOwner();
+			if (AttachedActor && AttachedActor != this)
+			{
+				// Detach the actor from the mesh
+				AttachedActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+			}
+		}
 	}
-    
-	if (LeftMotionController)
-	{
-		LeftMotionController->SetRelativeLocation(FVector::ZeroVector);
-		LeftMotionController->SetWorldLocation(FVector::ZeroVector);
-		LeftMotionController->SetRelativeRotation(FRotator::ZeroRotator);
-	}*/
+}
+
+// Example Blueprint-callable function to detach actors from left and right hand sockets
+void AVRUnitBase::DetachActorsFromLeftHand()
+{
+	DetachActorsFromHand(LeftHandSocketName);
+}
+
+void AVRUnitBase::DetachActorsFromRightHand()
+{
+	DetachActorsFromHand(RightHandSocketName);
 }

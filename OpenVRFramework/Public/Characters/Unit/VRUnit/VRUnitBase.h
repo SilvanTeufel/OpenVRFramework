@@ -6,6 +6,7 @@
 #include "Characters/Unit/UnitBase.h"
 #include "MotionControllerComponent.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
+
 #include "VRUnitBase.generated.h"
 
 /**
@@ -111,9 +112,6 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void SetRotationAndPosition();
-
-	UFUNCTION(BlueprintCallable)
-	void SetVROriginLocation();
 	
 	// Function to update the rotation based on HMD orientation
 	UFUNCTION(BlueprintCallable)
@@ -136,15 +134,35 @@ public:
 	FVector LastHMDActorPosition;
 
 	// Function to update the VR Origin location every tick
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "VR")
 	void SetActorToHMDChange(float DeltaTime);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "VR")
 	void NullActorWithHMDLocation();
 
-	UFUNCTION(BlueprintCallable)
-	void CalibrateHands();
+	UFUNCTION(BlueprintCallable, Category = "VR")
+	void AttachActorsToHand(FName SocketName, FVector HandLocation);
 
-	UFUNCTION(BlueprintCallable)
-	void CalibrateMotionControllers();
+	// Example Blueprint-callable function to attach actors to left and right hand sockets
+	UFUNCTION(BlueprintCallable, Category = "VR")
+	void AttachActorsToLeftHand();
+	
+	UFUNCTION(BlueprintCallable, Category = "VR")
+	void AttachActorsToRightHand();
+
+	UFUNCTION(BlueprintCallable, Category = "VR")
+	void DetachActorsFromHand(FName SocketName);
+	
+	UFUNCTION(BlueprintCallable, Category = "VR")
+	void DetachActorsFromLeftHand();
+
+	UFUNCTION(BlueprintCallable, Category = "VR")
+	void DetachActorsFromRightHand();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR", meta = (AllowPrivateAccess = "true"))
+	FName LeftHandSocketName = "hand_lSocket";
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR", meta = (AllowPrivateAccess = "true"))
+	FName RightHandSocketName = "hand_rSocket";
+
 };
