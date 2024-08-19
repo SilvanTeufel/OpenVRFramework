@@ -9,6 +9,9 @@
 #include "Components/CapsuleComponent.h" // Add this include
 #include "GameFramework/CharacterMovementComponent.h"
 
+#include "Engine/World.h"
+#include "Materials/MaterialInterface.h"
+
 
 // Sets default values
 AVRUnitBase::AVRUnitBase(const FObjectInitializer& ObjectInitializer):Super(ObjectInitializer)
@@ -51,6 +54,11 @@ AVRUnitBase::AVRUnitBase(const FObjectInitializer& ObjectInitializer):Super(Obje
 	RightMotionController->MotionSource = FName("RightGrip");
 	RightMotionController->SetupAttachment(VROrigin);
 	RightMotionController->ComponentTags.Add(FName("RightHand"));
+
+	//PostProcessComponent = CreateDefaultSubobject<UPostProcessComponent>(TEXT("PostProcessComponent"));
+	//PostProcessComponent->bUnbound = true;  // Effekt wird auf das gesamte Level angewendet
+	//PostProcessComponent->SetupAttachment(Camera);
+
 }
 
 // Called when the game starts or when spawned
@@ -60,6 +68,32 @@ void AVRUnitBase::BeginPlay()
 	
 	// Null the actor with the HMD location
 	NullActorWithHMDLocation();
+	InitializeVignetteMaterial();
+	//PostProcessComponent->Settings.bOverride_VignetteIntensity = true;
+	//PostProcessComponent->Settings.VignetteIntensity = 0.0f;  
+}
+
+void AVRUnitBase::InitializeVignetteMaterial()
+{
+	// Load the material from your content directory
+	VignetteMaterialInstance = UMaterialInstanceDynamic::Create(StartMaterial, this);
+	
+	if (VignetteMaterialInstance)
+	{
+		// Apply the material to the camera's post-process settings
+		APlayerCameraManager* CameraManager = GetWorld()->GetFirstPlayerController()->PlayerCameraManager;
+		if (CameraManager)
+		{
+			// Use AddPostProcessBlendable to apply the material instance directly
+			//CameraManager->AddPostProcessBlendable(VignetteMaterialInstance, 1.0f);
+			
+			Camera->PostProcessSettings.AddBlendable(VignetteMaterialInstance, 1.0f);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("VignetteMaterialInstance not found!"));
+	}
 }
 
 // Called every frame
@@ -75,8 +109,22 @@ void AVRUnitBase::Tick(float DeltaTime)
 	CalculateHandLocation(DeltaTime);
 
 	SetActorToHMDChange(DeltaTime);
+	
+	//SetBlende(1.f);
+	//ApplyVignetteEffect(1.95, -0.59);
+}
 
-
+void AVRUnitBase::ApplyVignetteEffect(float VignetteStrength, float VignetteZoom)
+{
+	if (VignetteMaterialInstance)
+	{
+		VignetteMaterialInstance->SetScalarParameterValue(FName("VignetteStrength"), VignetteStrength);
+		VignetteMaterialInstance->SetScalarParameterValue(FName("VignetteZoom"), VignetteZoom);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Vignette Material Instance is not initialized!"));
+	}
 }
 
 void AVRUnitBase::SetRotationAndPosition()
@@ -93,13 +141,15 @@ void AVRUnitBase::UpdateRotation()
 	FVector HMDLineEnd = HMDPosition + (HMDDirection * 100.0f); // Adjust the length as needed
 	DrawDebugLine(GetWorld(), HMDPosition, HMDLineEnd, FColor::Green, false, -1, 0, 5.0f);
 
+	// Get the forward and right vectors based on the control rotation
 
+	HMDDirection.Normalize();
 	// Only use the yaw rotation for the character
 	FRotator NewRotation =  FRotator(0.0f, HMDRotation.Yaw-90.f, 0.0f);
 	
 	// Set the capsule component's rotation to match the HMD's yaw rotation
 	GetMesh()->SetRelativeRotation(NewRotation);
-
+	Camera->SetRelativeLocation(FVector(HMDDirection.X*10.f, HMDDirection.Y*10.f, 190.f));
 }
 
 void AVRUnitBase::CalculateHeadLocation(float DeltaTime)
@@ -274,8 +324,9 @@ void AVRUnitBase::AttachActorsToHand(FName SocketName, FVector HandLocation)
 		{
 			if (GetMesh()->DoesSocketExist(SocketName))
 			{
-				HitActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+				//HitActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 				HitActor->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, SocketName);
+				HitActor->SetActorRotation(FRotator::ZeroRotator);
 			}
 		}
 	}
@@ -330,4 +381,91 @@ void AVRUnitBase::DetachActorsFromLeftHand()
 void AVRUnitBase::DetachActorsFromRightHand()
 {
 	DetachActorsFromHand(RightHandSocketName);
+}
+
+void AVRUnitBase::UpdateFOVBasedOnSpeed()
+{
+	if (UCharacterMovementComponent* CharMovement = GetCharacterMovement())
+	{
+		// Get the current speed
+		float CurrentSpeed = CharMovement->Velocity.Size();
+
+		// Map the current speed to an FOV value
+		float TargetFOV = FMath::GetMappedRangeValueClamped(
+			FVector2D(0.0f, MaxSpeedForMinFOV), // Input range (speed)
+			FVector2D(MaxFOV, MinFOV), // Output range (FOV)
+			CurrentSpeed
+		);
+
+		// Set the new FOV for the camera
+		//Camera->SetFieldOfView(TargetFOV);
+		//Camera->SetFieldOfView(1.0f);  // Setze einen extrem niedrigen FOV-Wert
+		Camera->FieldOfView = FMath::Clamp(1, 0, 30);
+		// Log the speed and TargetFOV to the screen
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1, // Key (for update), -1 for new message
+				2.0f, // Time to display
+				FColor::Yellow, // Text color
+				FString::Printf(TEXT("Speed: %.2f, TargetFOV: %.2f"), CurrentSpeed, TargetFOV)
+			);
+		}
+	}
+}
+
+void AVRUnitBase::SetBlende(float Value)
+{
+	// Begrenze den Wert, um sicherzustellen, dass er zwischen 0 und 1 liegt
+	//PostProcessComponent->Settings.VignetteIntensity = Value;
+	/*
+	Camera->PostProcessSettings.bOverride_AutoExposureMinBrightness = true;
+	Camera->PostProcessSettings.AutoExposureMinBrightness = 1.0f;
+	Camera->PostProcessSettings.bOverride_AutoExposureMaxBrightness = true;
+	Camera->PostProcessSettings.AutoExposureMaxBrightness = 1.0f;
+	Camera->PostProcessSettings.bOverride_LensFlareIntensity = true;
+	Camera->PostProcessSettings.LensFlareIntensity = 0.0f;*/
+	Camera->PostProcessSettings.bOverride_VignetteIntensity = true; 
+	//Camera->PostProcessSettings.bOverride_SceneColorTint = true;
+	//Camera->PostProcessSettings.SceneColorTint = FLinearColor::Red;
+	
+		Camera->PostProcessBlendWeight = 0.25f;
+
+		Camera->PostProcessSettings.VignetteIntensity = 10.f;
+	
+}
+
+
+void AVRUnitBase::IncreaseAperture()
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1, // Key (for update), -1 for new message
+			2.0f, // Time to display
+			FColor::Yellow, // Text color
+			FString::Printf(TEXT("IncreaseAperture!"))
+		);
+	}
+	Camera->PostProcessSettings.bOverride_VignetteIntensity = true; 
+	Camera->PostProcessBlendWeight = 0.25f;
+	Camera->PostProcessSettings.VignetteIntensity += 1.f;
+}
+
+void AVRUnitBase::DecreaseAperture()
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1, // Key (for update), -1 for new message
+			2.0f, // Time to display
+			FColor::Yellow, // Text color
+			FString::Printf(TEXT("DecreaseAperture!"))
+		);
+	}
+
+	Camera->PostProcessSettings.bOverride_VignetteIntensity = true; 
+	Camera->PostProcessBlendWeight = 0.25f;
+	Camera->PostProcessSettings.VignetteIntensity -= 1.f;
+
 }
