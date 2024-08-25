@@ -27,22 +27,10 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = VR)
-	UMaterialInstance* StartMaterial;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
-	UMaterialInstanceDynamic* VignetteMaterialInstance;
-
-	void InitializeVignetteMaterial();
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-	// Function to apply vignette effect
-	UFUNCTION(BlueprintCallable, Category = "Vignette")
-	void ApplyVignetteEffect(float VignetteStrength = 0.5f, float VignetteZoom = 1.0f);
-
-//private:
+	
 	// VR Root Component
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = VR)
 	class USceneComponent* VROrigin;
@@ -98,27 +86,13 @@ public:
 	FVector RightHandLocation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
+	FRotator LeftHandRotation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
+	FRotator RightHandRotation;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	FVector MovementDirection;
-
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
-	FVector MovementHandOnePosition = FVector(20.f, 42.f, 350.f);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
-	FVector MovementHandTwoPosition = FVector(0.f, 42.f, 300.f);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
-	float MovementHandInterval = 0.5f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
-	FVector CurrentMovementHandPosition = MovementHandOnePosition;
-
-	// Timer handle for switching the movement hand position
-	FTimerHandle MovementHandTimerHandle;
-
-	// Function to switch the movement hand position
-	UFUNCTION(BlueprintCallable)
-	void SwitchMovementHandPosition();
 	
 	UFUNCTION(BlueprintCallable)
 	void SetMovementDirection( FVector Value);
@@ -135,9 +109,12 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void CalculateHandLocation(float DeltaTime);
+
+	UFUNCTION(BlueprintCallable)
+	void CalculateHandRotation();
 	
 	UFUNCTION(BlueprintCallable)
-	void MoveJoystick( float X, float Y);
+	void MoveJoystick( float X, float Y, float Speed);
 	
 	// Function to normalize the HMD Z-Position
 	UFUNCTION(BlueprintCallable)
@@ -190,18 +167,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR")
 	float MaxSpeedForMinFOV = 300.0f; // Maximum speed at which FOV is at its minimum
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR")
+	float LastIncreaseApertureTime = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR")
+	float LastDecreaseApertureTime = 0.0f;
+	
 	UFUNCTION(BlueprintCallable , Category = VR)
-	void UpdateFOVBasedOnSpeed();
+	void IncreaseAperture(float Amount = 1.f, float Max = 15.f, float BlendWeight = 0.25f, float Interval = 0.1f);
 
 	UFUNCTION(BlueprintCallable , Category = VR)
-	void SetBlende(float Value);
-
-	UFUNCTION(BlueprintCallable , Category = VR)
-	void AdjustAperture(float NewAperture);
-
-	UFUNCTION(BlueprintCallable , Category = VR)
-	void IncreaseAperture();
-
-	UFUNCTION(BlueprintCallable , Category = VR)
-	void DecreaseAperture();
+	void DecreaseAperture(float Amount = 1.f, float Min = 0.f, float BlendWeight = 0.25f, float Interval = 0.1f);
 };
