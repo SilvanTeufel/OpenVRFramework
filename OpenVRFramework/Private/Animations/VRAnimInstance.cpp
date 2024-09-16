@@ -29,7 +29,7 @@ void UVRAnimInstance::NativeUpdateAnimation(float Deltaseconds)
 			Head = VRUnitBase->HeadLocation;
 			LeftHand = VRUnitBase->LeftHandLocation;
 			RightHand = VRUnitBase->RightHandLocation;
-			LeftHandRotation.Roll = VRUnitBase->LeftHandRotation.Roll -100.f;
+			LeftHandRotation = VRUnitBase->LeftHandRotation;
 			RightHandRotation = VRUnitBase->RightHandRotation;
 			Knee = VRUnitBase->NormalizedZ;
 			Velocity = 1.f;

@@ -190,7 +190,7 @@ void AVRUnitBase::CalculateHandRotation()
 		FRotator CurrentLeftHandRotation = LeftMotionController->GetComponentRotation();
 		
 		// Optionally invert yaw or roll to correct the mirroring
-		CurrentLeftHandRotation.Pitch = -1*CurrentLeftHandRotation.Pitch;  // Example of inverting the Yaw
+		//CurrentLeftHandRotation.Pitch = -1*CurrentLeftHandRotation.Pitch;  // Example of inverting the Yaw
 
 		LeftHandRotation = CurrentLeftHandRotation;
 
@@ -213,7 +213,7 @@ void AVRUnitBase::CalculateHandRotation()
 		FRotator CurrentRightHandRotation = RightMotionController->GetComponentRotation();
 
 		// Optionally invert yaw or roll to correct the mirroring
-		CurrentRightHandRotation.Pitch = -1*CurrentRightHandRotation.Pitch;  // Example of inverting the Yaw
+		//CurrentRightHandRotation.Roll = -1*CurrentRightHandRotation.Roll;  // Example of inverting the Yaw
 		
 		RightHandRotation = CurrentRightHandRotation;
 

@@ -211,6 +211,7 @@ void AUnitControllerBase::UnitControlStateMachine(float DeltaSeconds)
 		case UnitData::PatrolRandom:
 			{
 				// Zugriff auf den PlayerController und Cast zu deinem spezifischen HUD
+				//UE_LOG(LogTemp, Warning, TEXT("PatrolRandom"));
 				
 				APlayerController* PC = GetWorld()->GetFirstPlayerController();
 				if (PC)
@@ -1043,6 +1044,7 @@ void AUnitControllerBase::SetUEPathfindingRandomLocation(AUnitBase* UnitBase, fl
 	
 	UnitBase->UnitControlTimer += DeltaSeconds;
 
+
 	
 	if(!UnitBase->SetUEPathfinding)
 		return;
@@ -1078,9 +1080,9 @@ bool AUnitControllerBase::SetUEPathfinding(AUnitBase* UnitBase, float DeltaSecon
 	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
 	if(PlayerController)
 	{
-		AControllerBase* ControllerBase = Cast<AControllerBase>(PlayerController);
-		if (ControllerBase != nullptr)
-		{
+		//AControllerBase* ControllerBase = Cast<AControllerBase>(PlayerController);
+		//if (ControllerBase != nullptr)
+		//{
 			UnitBase->SetWalkSpeed(UnitBase->Attributes->GetRunSpeed());
 			// You can use the controller here
 
@@ -1089,7 +1091,7 @@ bool AUnitControllerBase::SetUEPathfinding(AUnitBase* UnitBase, float DeltaSecon
 			UnitBase->SetUEPathfinding = false;
 			//ControllerBase->MoveToLocationUEPathFinding(UnitBase, Location);
 			return MoveToLocationUEPathFinding(UnitBase, Location);
-		}
+		//}
 	}
 	
 	return false;
