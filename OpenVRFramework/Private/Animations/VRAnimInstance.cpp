@@ -12,6 +12,10 @@ void UVRAnimInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME(UVRAnimInstance, Head);
 	DOREPLIFETIME(UVRAnimInstance, LeftHand);
 	DOREPLIFETIME(UVRAnimInstance, RightHand);
+	DOREPLIFETIME(UVRAnimInstance, LeftHandRotation);
+	DOREPLIFETIME(UVRAnimInstance, RightHandRotation);
+	DOREPLIFETIME(UVRAnimInstance, HeadRotation);
+
 }
 
 void UVRAnimInstance::NativeUpdateAnimation(float Deltaseconds)
@@ -27,6 +31,7 @@ void UVRAnimInstance::NativeUpdateAnimation(float Deltaseconds)
 		if(VRUnitBase != nullptr)
 		{
 			Head = VRUnitBase->HeadLocation;
+			HeadRotation = VRUnitBase->HMDRotation;
 			LeftHand = VRUnitBase->LeftHandLocation;
 			RightHand = VRUnitBase->RightHandLocation;
 			LeftHandRotation = VRUnitBase->LeftHandRotation;

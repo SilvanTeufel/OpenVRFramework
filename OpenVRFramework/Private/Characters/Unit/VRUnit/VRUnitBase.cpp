@@ -112,6 +112,8 @@ void AVRUnitBase::UpdateRotation()
 	Camera->SetRelativeLocation(FVector(HMDDirection.X*10.f, HMDDirection.Y*10.f, 190.f));
 }
 
+
+
 void AVRUnitBase::CalculateHeadLocation(float DeltaTime)
 {
 	// Convert rotation to quaternion for easier manipulation
@@ -121,7 +123,7 @@ void AVRUnitBase::CalculateHeadLocation(float DeltaTime)
 	FVector ForwardVector = HMDQuat.GetForwardVector();
 	FVector ActorLocation = GetActorLocation();
 	// Use forward vector components for X and Y (ignore Z to make it independent)
-	float XComponent = HMDRotation.Pitch*(-1)*0.5f + ActorLocation.X;
+	float XComponent = HMDRotation.Pitch*(-1)*0.5f+ ActorLocation.X;
 	float YComponent = HMDRotation.Roll*0.5f + ActorLocation.Y;
 
 	// For Z component, use the HMDPosition's Z directly, making it independent of the character's Z location
@@ -133,8 +135,6 @@ void AVRUnitBase::CalculateHeadLocation(float DeltaTime)
 	// Smoothly interpolate the head location
 	float InterpSpeed = 1000.f; // Adjust this value to control the interpolation speed
 	HeadLocation = FMath::VInterpTo(HeadLocation, TargetHeadLocation, DeltaTime, InterpSpeed);
-
-
 
 }
 
@@ -255,6 +255,7 @@ void AVRUnitBase::MoveJoystick( float X, float Y, float Speed)
 
 		// Apply the movement input to the character
 		AddMovementInput(MovementDirection, Speed);
+		NullActorWithHMDLocation();
 	}
 }
 
@@ -275,25 +276,64 @@ void AVRUnitBase::NormalizeHMDZPosition()
 void AVRUnitBase::NullActorWithHMDLocation()
 {
 	LastHMDActorPosition = HMDPosition;
+	MoveActorToHMDChange = false;
 }
+
 
 
 void AVRUnitBase::SetActorToHMDChange(float DeltaTime)
 {
-	const float Threshold = 1.0f;
+	
+	const float Threshold = 10.0f;
 
 	FVector RelativeChange = (HMDPosition - LastHMDActorPosition);
 	
 
 	float XYMagnitude = FVector(RelativeChange.X, RelativeChange.Y, 0.0f).Size();
 
-	if (XYMagnitude > Threshold)
+	if (XYMagnitude > Threshold && !MoveActorToHMDChange)
 	{
-		SetActorLocation(GetActorLocation()+FVector(RelativeChange.X, RelativeChange.Y, 0.f));
-		
+		MoveActorToHMDChange = true;
+		//SetActorLocation(GetActorLocation()+FVector(RelativeChange.X, RelativeChange.Y, 0.f));
+		HMDChangeTargetLocation = GetActorLocation()+FVector(RelativeChange.X, RelativeChange.Y, 0.f);
 		LastHMDActorPosition = HMDPosition;
 	}
+
+
+	if(MoveActorToHMDChange)
+	{
+		// Calculate Movement Direction from Actor to HMDChangeTargetLocation
+		// Move Character by using SetActorLocation
+
+		// Calculate Movement Direction from Actor to HMDChangeTargetLocation
+		FVector CurrentLocation = GetActorLocation();
+		FVector Direction = (HMDChangeTargetLocation - CurrentLocation).GetSafeNormal();
+
+		// Define movement speed (units per second)
+		float MovementSpeed = 35.0f;
+
+		// Calculate the distance to move this frame
+		float MoveDistance = MovementSpeed * DeltaTime;
+
+		// Calculate the remaining distance to the target
+		float DistanceToTarget = FVector::Dist(CurrentLocation, HMDChangeTargetLocation);
+
+		if (MoveDistance >= DistanceToTarget)
+		{
+			// Move directly to the target location and stop moving
+			SetActorLocation(HMDChangeTargetLocation);
+			MoveActorToHMDChange = false;
+		}
+		else
+		{
+			// Move towards the target location
+			FVector NewLocation = CurrentLocation + Direction * MoveDistance;
+			SetActorLocation(NewLocation);
+		}
+	}
+	
 }
+
 
 void AVRUnitBase::AttachActorsToHand(FName SocketName, FVector HandLocation)
 {

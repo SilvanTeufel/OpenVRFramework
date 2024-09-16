@@ -60,7 +60,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	FVector HeadLocation;
-
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = VR, meta = (AllowPrivateAccess = "true"))
 	UMotionControllerComponent* LeftMotionController;
 
@@ -127,6 +127,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = VR)
 	void SetActorToHMDChange(float DeltaTime);
 
+	UPROPERTY(BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
+	bool MoveActorToHMDChange = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
+	FVector HMDChangeTargetLocation;
+	
 	UFUNCTION(BlueprintCallable, Category = VR)
 	void NullActorWithHMDLocation();
 
