@@ -9,6 +9,8 @@
 #include "Components/PostProcessComponent.h"
 #include "Materials/MaterialInterface.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "CVirt.h"
+using namespace CybSDK;
 #include "VRUnitBase.generated.h"
 
 /**
@@ -102,10 +104,10 @@ public:
 	
 	// Function to update the rotation based on HMD orientation
 	UFUNCTION(BlueprintCallable)
-	void UpdateRotation();
+	void UpdateRotation(FVector Position, FRotator Rotation);
 
-	UFUNCTION(BlueprintCallable)
-	void CalculateHeadLocation(float DeltaTime);
+	//UFUNCTION(BlueprintCallable)
+	//void CalculateHeadLocation(float DeltaTime);
 
 	UFUNCTION(BlueprintCallable)
 	void CalculateHandLocation(float DeltaTime);
@@ -115,7 +117,15 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void MoveJoystick( float X, float Y, float Speed);
+
+	UFUNCTION(BlueprintCallable)
+	void MoveWithVirtualizer(float Speed);
 	
+	UFUNCTION(BlueprintCallable)
+	float CreateNormedVelocity(UCharacterMovementComponent* CharMovement, float Speed);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
+	float NormedVelocity;
 	// Function to normalize the HMD Z-Position
 	UFUNCTION(BlueprintCallable)
 	void NormalizeHMDZPosition();
@@ -155,28 +165,28 @@ public:
 	UFUNCTION(BlueprintCallable, Category = VR)
 	void DetachActorsFromRightHand();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	FName LeftHandSocketName = "hand_lSocket";
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	FName RightHandSocketName = "hand_rSocket";
 
 	
 	// FOV Settings
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
 	float MinFOV = 30.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
 	float MaxFOV = 120.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
 	float MaxSpeedForMinFOV = 300.0f; // Maximum speed at which FOV is at its minimum
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
 	float LastIncreaseApertureTime = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
 	float LastDecreaseApertureTime = 0.0f;
 	
 	UFUNCTION(BlueprintCallable , Category = VR)
@@ -184,4 +194,24 @@ public:
 
 	UFUNCTION(BlueprintCallable , Category = VR)
 	void DecreaseAperture(float Amount = 1.f, float Min = 0.f, float BlendWeight = 0.25f, float Interval = 0.1f);
+
+	UFUNCTION(BlueprintCallable , Category = VR)
+	void GetVirtualizerData();
+
+	UFUNCTION(BlueprintCallable , Category = VR)
+	void HandleHapticData(int32 selection);
+	
+	VirtDevice* VDevice;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
+	FRotator VRotation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
+	float VRotationOffset = 180.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
+	bool EnableVirtualizer = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
+	float MaxVSpeed = 4.f; // m/s
 };

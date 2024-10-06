@@ -37,7 +37,7 @@ void UVRAnimInstance::NativeUpdateAnimation(float Deltaseconds)
 			LeftHandRotation = VRUnitBase->LeftHandRotation;
 			RightHandRotation = VRUnitBase->RightHandRotation;
 			Knee = VRUnitBase->NormalizedZ;
-			Velocity = 1.f;
+			Velocity = VRUnitBase->NormedVelocity;
 		}
 	}
 	

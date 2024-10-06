@@ -13,6 +13,7 @@
 #include "Materials/MaterialInterface.h"
 
 
+
 // Sets default values
 AVRUnitBase::AVRUnitBase(const FObjectInitializer& ObjectInitializer):Super(ObjectInitializer)
 {
@@ -64,6 +65,7 @@ void AVRUnitBase::BeginPlay()
 	
 	// Null the actor with the HMD location
 	NullActorWithHMDLocation();
+	VDevice = Virt::FindDevice();
 }
 
 
@@ -72,18 +74,21 @@ void AVRUnitBase::BeginPlay()
 void AVRUnitBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (EnableVirtualizer) GetVirtualizerData();
 	
 	SetRotationAndPosition();
-	UpdateRotation();
-	NormalizeHMDZPosition();
 	
-	CalculateHeadLocation(DeltaTime);
+	if (!EnableVirtualizer) UpdateRotation(HMDPosition, HMDRotation);
+	else UpdateRotation(HMDPosition, VRotation);
+	
+	if (!EnableVirtualizer)NormalizeHMDZPosition();
+	
+	//CalculateHeadLocation(DeltaTime);
 	CalculateHandLocation(DeltaTime);
 	CalculateHandRotation();
 	
-	SetActorToHMDChange(DeltaTime);
-	
-
+	if (!EnableVirtualizer) SetActorToHMDChange(DeltaTime);
 }
 
 
@@ -93,19 +98,18 @@ void AVRUnitBase::SetRotationAndPosition()
 	Camera->SetWorldRotation(HMDRotation);
 }
 
-void AVRUnitBase::UpdateRotation()
+void AVRUnitBase::UpdateRotation(FVector Position, FRotator Rotation)
 {
-
 	// Draw a debug line from the HMD position
-	FVector HMDDirection = FRotationMatrix(HMDRotation).GetScaledAxis(EAxis::X);
-	FVector HMDLineEnd = HMDPosition + (HMDDirection * 100.0f); // Adjust the length as needed
-	DrawDebugLine(GetWorld(), HMDPosition, HMDLineEnd, FColor::Green, false, -1, 0, 5.0f);
+	FVector HMDDirection = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+	FVector HMDLineEnd = Position + (HMDDirection * 100.0f); // Adjust the length as needed
+	DrawDebugLine(GetWorld(), Position, HMDLineEnd, FColor::Green, false, -1, 0, 5.0f);
 
 	// Get the forward and right vectors based on the control rotation
 
 	HMDDirection.Normalize();
 	// Only use the yaw rotation for the character
-	FRotator NewRotation =  FRotator(0.0f, HMDRotation.Yaw-90.f, 0.0f);
+	FRotator NewRotation =  FRotator(0.0f, Rotation.Yaw-90.f, 0.0f);
 	
 	// Set the capsule component's rotation to match the HMD's yaw rotation
 	GetMesh()->SetRelativeRotation(NewRotation);
@@ -113,7 +117,7 @@ void AVRUnitBase::UpdateRotation()
 }
 
 
-
+/*
 void AVRUnitBase::CalculateHeadLocation(float DeltaTime)
 {
 	// Convert rotation to quaternion for easier manipulation
@@ -123,7 +127,7 @@ void AVRUnitBase::CalculateHeadLocation(float DeltaTime)
 	FVector ForwardVector = HMDQuat.GetForwardVector();
 	FVector ActorLocation = GetActorLocation();
 	// Use forward vector components for X and Y (ignore Z to make it independent)
-	float XComponent = HMDRotation.Pitch*(-1)*0.5f+ ActorLocation.X;
+	float XComponent = HMDRotation.Pitch*(-1)*0.5f + ActorLocation.X;
 	float YComponent = HMDRotation.Roll*0.5f + ActorLocation.Y;
 
 	// For Z component, use the HMDPosition's Z directly, making it independent of the character's Z location
@@ -137,7 +141,7 @@ void AVRUnitBase::CalculateHeadLocation(float DeltaTime)
 	HeadLocation = FMath::VInterpTo(HeadLocation, TargetHeadLocation, DeltaTime, InterpSpeed);
 
 }
-
+*/
 void AVRUnitBase::CalculateHandLocation(float DeltaTime)
 {
 	float InterpSpeed = 1000.f;
@@ -255,13 +259,76 @@ void AVRUnitBase::MoveJoystick( float X, float Y, float Speed)
 
 		// Apply the movement input to the character
 		AddMovementInput(MovementDirection, Speed);
+		
+		NormedVelocity = CreateNormedVelocity(CharMovement, Speed);
+		
 		NullActorWithHMDLocation();
 	}
+}
+
+void AVRUnitBase::MoveWithVirtualizer(float Speed)
+{
+	// Ensure that there is a valid movement component
+	if (UCharacterMovementComponent* CharMovement = GetCharacterMovement())
+	{
+		// Get the character's control rotation
+		FRotator CurrentHMDRotation = HMDRotation;
+		// Only use the yaw rotation for movement
+		CurrentHMDRotation.Pitch = 0.0f;
+		CurrentHMDRotation.Roll = 0.0f;
+
+		// Get the forward and right vectors based on the control rotation
+		FVector ForwardDirection = FRotationMatrix(CurrentHMDRotation).GetScaledAxis(EAxis::X);
+
+
+		// Calculate the movement direction based on the joystick input
+		MovementDirection = ForwardDirection;
+
+		// Normalize the movement direction to ensure consistent movement speed
+		MovementDirection.Normalize();
+
+		float NormSpeed; // Calculate NormSpeed is between 0 and 1 and dependent on Speed and MaxVSpeed. If Speed is MaxVSpeed NormSpeed is 1
+
+		if (MaxVSpeed != 0.0f)
+		{
+			NormSpeed = FMath::Clamp(Speed / MaxVSpeed, 0.0f, 1.0f);
+		}
+		else
+		{
+			NormSpeed = 0.0f; // if MaxVSpeed is zero, set NormSpeed to zero
+		}
+		// Apply the movement input to the character
+		AddMovementInput(MovementDirection, NormSpeed);
+		
+		NormedVelocity = CreateNormedVelocity(CharMovement, NormSpeed);
+		
+		NullActorWithHMDLocation();
+	}
+}
+
+float AVRUnitBase::CreateNormedVelocity(UCharacterMovementComponent* CharMovement, float Speed)
+{
+	FVector CVelocity = GetVelocity();
+	float CurrentSpeed = CVelocity.Size();
+
+	// Get the character's max speed from the movement component
+	float MaxSpeed = CharMovement->MaxWalkSpeed*Speed;
+
+	// Normalize the speed to a 0-100 scale
+	float NormalizedSpeed = (CurrentSpeed / MaxSpeed) * 100.0f;
+
+	// Clamp the value to ensure it stays within the range 0-100
+	NormalizedSpeed = FMath::Clamp(NormalizedSpeed, 0.0f, 100.0f);
+
+	// Save the normalized speed to a variable (assuming you have a variable defined to store it)
+	return NormalizedSpeed;
 }
 
 void AVRUnitBase::SetMovementDirection( FVector Value)
 {
 	MovementDirection = Value;
+	NormedVelocity = 0;
+
 }
 
 void AVRUnitBase::NormalizeHMDZPosition()
@@ -443,4 +510,101 @@ void AVRUnitBase::DecreaseAperture(float Amount, float Min, float BlendWeight, f
 	Camera->PostProcessBlendWeight = BlendWeight;
 	if(Camera->PostProcessSettings.VignetteIntensity > Min) Camera->PostProcessSettings.VignetteIntensity -= Amount;
 
+}
+
+void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
+{
+	
+	if (VDevice == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No Device Found!"));
+		UE_LOG(LogTemp, Warning, TEXT("========================================"));
+		return;
+	}
+
+	const VirtDeviceInfo& info = VDevice->GetDeviceInfo();
+
+	UE_LOG(LogTemp, Warning, TEXT("Device Found: %ls"), info.ProductName);
+	UE_LOG(LogTemp, Warning, TEXT("Firmware Version: %d.%d"), info.MajorVersion, info.MinorVersion);
+	UE_LOG(LogTemp, Warning, TEXT("========================================\n"));
+
+	if (!VDevice->Open())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Unable to connect to Virtualizer!"));
+		UE_LOG(LogTemp, Warning, TEXT("========================================"));
+		return;
+	}
+		UE_LOG(LogTemp, Warning, TEXT("========================================"));
+		UE_LOG(LogTemp, Warning, TEXT("Ring Height:        %10.2fcm"), VDevice->GetPlayerHeight());
+		UE_LOG(LogTemp, Warning, TEXT("Player Orientation: %10.2f°"), VDevice->GetPlayerOrientation() * 360);
+		UE_LOG(LogTemp, Warning, TEXT("Movement Speed:     %10.2fm/s"), VDevice->GetMovementSpeed());
+		UE_LOG(LogTemp, Warning, TEXT("Movement Direction: %10.2f°"), VDevice->GetMovementDirection() * 180);
+		UE_LOG(LogTemp, Warning, TEXT("========================================"));
+
+	MoveWithVirtualizer(VDevice->GetMovementSpeed());
+	VRotation =  FRotator(0.0f, VDevice->GetPlayerOrientation() * 360 - VRotationOffset, 0.0f);
+}
+
+void AVRUnitBase::HandleHapticData(int32 selection)
+{
+    if (VDevice == nullptr)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("No Device Found!"));
+        return;
+    }
+
+    if (!VDevice->Open())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Unable to connect to Virtualizer!"));
+        return;
+    }
+	
+        // Log available options
+        UE_LOG(LogTemp, Warning, TEXT("Choose function:"));
+        UE_LOG(LogTemp, Warning, TEXT("0: Toggle active"));
+        UE_LOG(LogTemp, Warning, TEXT("1: Set Gain"));
+        UE_LOG(LogTemp, Warning, TEXT("2: Set Frequency"));
+        UE_LOG(LogTemp, Warning, TEXT("3: Set Volume"));
+        UE_LOG(LogTemp, Warning, TEXT("4: Quit"));
+	
+
+        switch (selection)
+        {
+            case 0:
+                // Toggle the haptic device's state
+                VDevice->HapticStop();
+        		UE_LOG(LogTemp, Warning, TEXT("Haptic feedback stopped."));
+                break;
+	        case 1:
+        		// Set gain
+        		VDevice->HapticPlay();
+        		UE_LOG(LogTemp, Warning, TEXT("Haptic feedback started."));
+        		break;
+            case 2:
+                // Set gain
+                UE_LOG(LogTemp, Warning, TEXT("Set Gain (0-3):"));
+                VDevice->HapticSetGain(selection);
+                UE_LOG(LogTemp, Warning, TEXT("Haptic Gain set to: %d"), selection);
+                break;
+
+            case 3:
+                // Set frequency
+                UE_LOG(LogTemp, Warning, TEXT("Set Frequency (10-80):"));
+                VDevice->HapticSetFrequency(selection);
+                UE_LOG(LogTemp, Warning, TEXT("Haptic Frequency set to: %d"), selection);
+                break;
+
+            case 4:
+                // Set volume
+                UE_LOG(LogTemp, Warning, TEXT("Set Volume (0-100):"));
+                VDevice->HapticSetVolume(selection);
+                UE_LOG(LogTemp, Warning, TEXT("Haptic Volume set to: %d"), selection);
+                break;
+
+            default:
+                // Stop haptic feedback and exit
+                VDevice->HapticStop();
+                UE_LOG(LogTemp, Warning, TEXT("Haptic feedback stopped. Exiting."));
+                break;
+        }
 }
