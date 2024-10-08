@@ -51,15 +51,18 @@ public:
 	FVector HMDOffset;
 	// Reference Z-Positions for normalization
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
-	float StandingZ;
+	float StandingZ = 180.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
-	float KneelingZ;
+	float KneelingZ = 90.f;
 
 	// Normalized Z-Position
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
-	float NormalizedZ;
+	float CrouchedNormedZ;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
+	float ScaleCapsuleIfCrouched = 1.f;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	FVector HeadLocation;
 	
@@ -128,7 +131,7 @@ public:
 	float NormedVelocity;
 	// Function to normalize the HMD Z-Position
 	UFUNCTION(BlueprintCallable)
-	void NormalizeHMDZPosition();
+	void CrouchOnHMDZPosition();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	FVector LastHMDActorPosition;

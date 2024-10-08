@@ -21,10 +21,10 @@ public:
 	virtual void NativeUpdateAnimation(float Deltaseconds) override;
 	
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
-	FVector LeftHand;
+	FVector LeftHandPosition;
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
-	FVector RightHand;
+	FVector RightHandPosition;
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
 	FRotator LeftHandRotation;
@@ -39,7 +39,7 @@ public:
 	FRotator HeadRotation;
 	
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
-	float Knee;
+	float Crouch;
 	
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
 	float Velocity;

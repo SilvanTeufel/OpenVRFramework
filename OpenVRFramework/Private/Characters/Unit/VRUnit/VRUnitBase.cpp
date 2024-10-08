@@ -18,7 +18,7 @@
 AVRUnitBase::AVRUnitBase(const FObjectInitializer& ObjectInitializer):Super(ObjectInitializer)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-
+	//SetRootComponent(GetMesh());
 	PrimaryActorTick.bCanEverTick = true;
 
 	// Create VR Root Component
@@ -29,12 +29,12 @@ AVRUnitBase::AVRUnitBase(const FObjectInitializer& ObjectInitializer):Super(Obje
 	// Create Camera Component
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(VROrigin);
-	GetMesh()->SetupAttachment(VROrigin);
-
+	GetMesh()->SetupAttachment(GetCapsuleComponent());
+/*
 	// Initialize reference Z-Positions
 	StandingZ = 180.f;  // Example value, adjust according to your setup
 	KneelingZ = 90.f;   // Example value, adjust according to your setup
-
+*/
 	bUseControllerRotationYaw = true; // Ensure the character uses the controller's rotation for yaw
 
 	if (UCharacterMovementComponent* CharMovement = GetCharacterMovement())
@@ -66,6 +66,15 @@ void AVRUnitBase::BeginPlay()
 	// Null the actor with the HMD location
 	NullActorWithHMDLocation();
 	VDevice = Virt::FindDevice();
+	
+	// For example, only block the world static objects
+	/*
+	RootComponent = GetMesh();
+	GetMesh()->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECC_WorldStatic, ECollisionResponse::ECR_Block);
+
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	*/
 }
 
 
@@ -82,7 +91,7 @@ void AVRUnitBase::Tick(float DeltaTime)
 	if (!EnableVirtualizer) UpdateRotation(HMDPosition, HMDRotation);
 	else UpdateRotation(HMDPosition, VRotation);
 	
-	if (!EnableVirtualizer)NormalizeHMDZPosition();
+	if (!EnableVirtualizer)CrouchOnHMDZPosition();
 	
 	//CalculateHeadLocation(DeltaTime);
 	CalculateHandLocation(DeltaTime);
@@ -287,20 +296,24 @@ void AVRUnitBase::MoveWithVirtualizer(float Speed)
 		// Normalize the movement direction to ensure consistent movement speed
 		MovementDirection.Normalize();
 
-		float NormSpeed; // Calculate NormSpeed is between 0 and 1 and dependent on Speed and MaxVSpeed. If Speed is MaxVSpeed NormSpeed is 1
+		float NormSpeed; // Calculate NormSpeed is between 0 and 100 and dependent on Speed and MaxVSpeed. If Speed is MaxVSpeed NormSpeed is 1
 
-		if (MaxVSpeed != 0.0f)
+		if (Speed != 0.0f)
 		{
 			NormSpeed = FMath::Clamp(Speed / MaxVSpeed, 0.0f, 1.0f);
+			UE_LOG(LogTemp, Warning, TEXT("NormSpeed != 0: %f"), NormSpeed);
 		}
 		else
 		{
 			NormSpeed = 0.0f; // if MaxVSpeed is zero, set NormSpeed to zero
+			UE_LOG(LogTemp, Warning, TEXT("NormSpeed == 0: %f"), NormSpeed);
 		}
 		// Apply the movement input to the character
 		AddMovementInput(MovementDirection, NormSpeed);
 		
 		NormedVelocity = CreateNormedVelocity(CharMovement, NormSpeed);
+
+		UE_LOG(LogTemp, Warning, TEXT("NormedVelocity: %f"), NormedVelocity);
 		
 		NullActorWithHMDLocation();
 	}
@@ -308,9 +321,10 @@ void AVRUnitBase::MoveWithVirtualizer(float Speed)
 
 float AVRUnitBase::CreateNormedVelocity(UCharacterMovementComponent* CharMovement, float Speed)
 {
+	if(Speed == 0.0f) return 0.f;
 	FVector CVelocity = GetVelocity();
 	float CurrentSpeed = CVelocity.Size();
-
+	
 	// Get the character's max speed from the movement component
 	float MaxSpeed = CharMovement->MaxWalkSpeed*Speed;
 
@@ -331,12 +345,15 @@ void AVRUnitBase::SetMovementDirection( FVector Value)
 
 }
 
-void AVRUnitBase::NormalizeHMDZPosition()
+void AVRUnitBase::CrouchOnHMDZPosition()
 {
 	if (StandingZ != KneelingZ)  // To avoid division by zero
 	{
-		NormalizedZ = (StandingZ - HMDPosition.Z) / (StandingZ - KneelingZ);
-		NormalizedZ = FMath::Clamp(NormalizedZ, 0.f, 1.f);   // Ensure the value is between 0 and 1
+		float DecayRate = 0.75f; // Adjust this value to control the rate of decay
+		float ExponentialScale = FMath::Exp(-DecayRate * ScaleCapsuleIfCrouched);
+		CrouchedNormedZ = (StandingZ - HMDPosition.Z) / (StandingZ - KneelingZ);
+		CrouchedNormedZ = FMath::Clamp(CrouchedNormedZ, 0.f, 1.f)*100.f;   // Ensure the value is between 0 and 1
+		GetCapsuleComponent()->SetCapsuleHalfHeight(88.f - CrouchedNormedZ*ExponentialScale);
 	}
 }
 

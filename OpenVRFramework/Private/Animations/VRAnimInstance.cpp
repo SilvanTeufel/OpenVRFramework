@@ -10,8 +10,8 @@ void UVRAnimInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UVRAnimInstance, Head);
-	DOREPLIFETIME(UVRAnimInstance, LeftHand);
-	DOREPLIFETIME(UVRAnimInstance, RightHand);
+	DOREPLIFETIME(UVRAnimInstance, LeftHandPosition);
+	DOREPLIFETIME(UVRAnimInstance, RightHandPosition);
 	DOREPLIFETIME(UVRAnimInstance, LeftHandRotation);
 	DOREPLIFETIME(UVRAnimInstance, RightHandRotation);
 	DOREPLIFETIME(UVRAnimInstance, HeadRotation);
@@ -32,11 +32,11 @@ void UVRAnimInstance::NativeUpdateAnimation(float Deltaseconds)
 		{
 			Head = VRUnitBase->HeadLocation;
 			HeadRotation = VRUnitBase->HMDRotation;
-			LeftHand = VRUnitBase->LeftHandLocation;
-			RightHand = VRUnitBase->RightHandLocation;
+			LeftHandPosition = VRUnitBase->LeftHandLocation;
+			RightHandPosition = VRUnitBase->RightHandLocation;
 			LeftHandRotation = VRUnitBase->LeftHandRotation;
 			RightHandRotation = VRUnitBase->RightHandRotation;
-			Knee = VRUnitBase->NormalizedZ;
+			Crouch = VRUnitBase->CrouchedNormedZ;
 			Velocity = VRUnitBase->NormedVelocity;
 		}
 	}
