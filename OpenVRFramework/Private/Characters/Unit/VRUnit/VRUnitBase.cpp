@@ -66,15 +66,6 @@ void AVRUnitBase::BeginPlay()
 	// Null the actor with the HMD location
 	NullActorWithHMDLocation();
 	VDevice = Virt::FindDevice();
-	
-	// For example, only block the world static objects
-	/*
-	RootComponent = GetMesh();
-	GetMesh()->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	GetMesh()->SetCollisionResponseToChannel(ECC_WorldStatic, ECollisionResponse::ECR_Block);
-
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	*/
 }
 
 
@@ -88,12 +79,13 @@ void AVRUnitBase::Tick(float DeltaTime)
 	
 	SetRotationAndPosition();
 	
-	if (!EnableVirtualizer) UpdateRotation(HMDPosition, HMDRotation);
-	else UpdateRotation(HMDPosition, VRotation);
+	if (!EnableVirtualizer) UpdateRotation(HMDPosition, HMDRotation, -90.f);
+	else UpdateRotation(HMDPosition, VRotation, -120.f);
 	
-	if (!EnableVirtualizer)CrouchOnHMDZPosition();
-	
-	//CalculateHeadLocation(DeltaTime);
+	if (!EnableVirtualizer) CrouchOnZPosition(HMDPosition.Z);
+
+
+
 	CalculateHandLocation(DeltaTime);
 	CalculateHandRotation();
 	
@@ -107,7 +99,7 @@ void AVRUnitBase::SetRotationAndPosition()
 	Camera->SetWorldRotation(HMDRotation);
 }
 
-void AVRUnitBase::UpdateRotation(FVector Position, FRotator Rotation)
+void AVRUnitBase::UpdateRotation(FVector Position, FRotator Rotation, float Offset = 0.f)
 {
 	// Draw a debug line from the HMD position
 	FVector HMDDirection = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
@@ -118,7 +110,7 @@ void AVRUnitBase::UpdateRotation(FVector Position, FRotator Rotation)
 
 	HMDDirection.Normalize();
 	// Only use the yaw rotation for the character
-	FRotator NewRotation =  FRotator(0.0f, Rotation.Yaw-90.f, 0.0f);
+	FRotator NewRotation =  FRotator(0.0f, Rotation.Yaw+Offset, 0.0f);
 	
 	// Set the capsule component's rotation to match the HMD's yaw rotation
 	GetMesh()->SetRelativeRotation(NewRotation);
@@ -126,31 +118,6 @@ void AVRUnitBase::UpdateRotation(FVector Position, FRotator Rotation)
 }
 
 
-/*
-void AVRUnitBase::CalculateHeadLocation(float DeltaTime)
-{
-	// Convert rotation to quaternion for easier manipulation
-	FQuat HMDQuat = FQuat(HMDRotation);
-
-	// Calculate forward vector based on pitch and roll
-	FVector ForwardVector = HMDQuat.GetForwardVector();
-	FVector ActorLocation = GetActorLocation();
-	// Use forward vector components for X and Y (ignore Z to make it independent)
-	float XComponent = HMDRotation.Pitch*(-1)*0.5f + ActorLocation.X;
-	float YComponent = HMDRotation.Roll*0.5f + ActorLocation.Y;
-
-	// For Z component, use the HMDPosition's Z directly, making it independent of the character's Z location
-	float ZComponent = 160.f; //HMDPosition.Z;
-	
-	// Combine the components to create the HeadLocation vector
-	FVector TargetHeadLocation = FVector(XComponent, YComponent, ZComponent);
-
-	// Smoothly interpolate the head location
-	float InterpSpeed = 1000.f; // Adjust this value to control the interpolation speed
-	HeadLocation = FMath::VInterpTo(HeadLocation, TargetHeadLocation, DeltaTime, InterpSpeed);
-
-}
-*/
 void AVRUnitBase::CalculateHandLocation(float DeltaTime)
 {
 	float InterpSpeed = 1000.f;
@@ -172,8 +139,8 @@ void AVRUnitBase::CalculateHandLocation(float DeltaTime)
 	{
 		FVector CurrentLeftHandPosition = LeftMotionController->GetComponentLocation();
 		FVector VHeadToLHand = CurrentLeftHandPosition-HMDPosition;
-		LeftHandLocation = Camera->GetComponentLocation() + VHeadToLHand - FVector(ALocation.X, ALocation.Y, 0.f) + ForwardDirection*25.f;// Camera->GetComponentLocation()+
-		DrawDebugSphere(GetWorld(), LeftHandLocation, 5.0f, 12, FColor::Red, false, -1.0f, 0, 1.0f);
+		LeftHandLocation = Camera->GetComponentLocation() + VHeadToLHand - FVector(ALocation.X, ALocation.Y, 0.f) + ForwardDirection*25.f;
+		if(EnableDebug) DrawDebugSphere(GetWorld(), LeftHandLocation, 5.0f, 12, FColor::Red, false, -1.0f, 0, 1.0f);
 
 	}
 
@@ -182,12 +149,12 @@ void AVRUnitBase::CalculateHandLocation(float DeltaTime)
 	{
 		FVector CurrentRightHandPosition = RightMotionController->GetComponentLocation();
 		FVector VHeadToRHand = CurrentRightHandPosition-HMDPosition;
-		RightHandLocation = Camera->GetComponentLocation() + VHeadToRHand - FVector(ALocation.X, ALocation.Y, 0.f) + ForwardDirection*25.f; // Camera->GetComponentLocation()+
-		//RightHandLocation = FMath::VInterpTo(RightHandLocation, CurrentRightHandPosition, DeltaTime, InterpSpeed);
-		DrawDebugSphere(GetWorld(), RightHandLocation, 5.0f, 12, FColor::Blue, false, -1.0f, 0, 1.0f);
+		RightHandLocation = Camera->GetComponentLocation() + VHeadToRHand - FVector(ALocation.X, ALocation.Y, 0.f) + ForwardDirection*25.f;
+		if(EnableDebug) DrawDebugSphere(GetWorld(), RightHandLocation, 5.0f, 12, FColor::Blue, false, -1.0f, 0, 1.0f);
 	}
 
 	// Log the forward vector angle to the screen
+	if(EnableDebug)
 	if (GEngine && MovementDirection.Length() > 0)
 	{
 		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("LeftHandLocation        ___: %s"), *LeftHandLocation.ToString()));
@@ -208,6 +175,7 @@ void AVRUnitBase::CalculateHandRotation()
 		LeftHandRotation = CurrentLeftHandRotation;
 
 		// Optional: Draw debug sphere to visualize rotation if needed
+		if(EnableDebug)
 		DrawDebugCoordinateSystem(
 			GetWorld(),
 			LeftMotionController->GetComponentLocation(),
@@ -226,11 +194,12 @@ void AVRUnitBase::CalculateHandRotation()
 		FRotator CurrentRightHandRotation = RightMotionController->GetComponentRotation();
 
 		// Optionally invert yaw or roll to correct the mirroring
-		//CurrentRightHandRotation.Roll = -1*CurrentRightHandRotation.Roll;  // Example of inverting the Yaw
+		// CurrentRightHandRotation.Roll = -1*CurrentRightHandRotation.Roll;  // Example of inverting the Yaw
 		
 		RightHandRotation = CurrentRightHandRotation;
 
 		// Optional: Draw debug sphere to visualize rotation if needed
+		if(EnableDebug)
 		DrawDebugCoordinateSystem(
 			GetWorld(),
 			RightMotionController->GetComponentLocation(),
@@ -301,19 +270,16 @@ void AVRUnitBase::MoveWithVirtualizer(float Speed)
 		if (Speed != 0.0f)
 		{
 			NormSpeed = FMath::Clamp(Speed / MaxVSpeed, 0.0f, 1.0f);
-			UE_LOG(LogTemp, Warning, TEXT("NormSpeed != 0: %f"), NormSpeed);
+			VirtualizerMovement();
 		}
 		else
 		{
 			NormSpeed = 0.0f; // if MaxVSpeed is zero, set NormSpeed to zero
-			UE_LOG(LogTemp, Warning, TEXT("NormSpeed == 0: %f"), NormSpeed);
 		}
 		// Apply the movement input to the character
 		AddMovementInput(MovementDirection, NormSpeed);
 		
 		NormedVelocity = CreateNormedVelocity(CharMovement, NormSpeed);
-
-		UE_LOG(LogTemp, Warning, TEXT("NormedVelocity: %f"), NormedVelocity);
 		
 		NullActorWithHMDLocation();
 	}
@@ -345,16 +311,18 @@ void AVRUnitBase::SetMovementDirection( FVector Value)
 
 }
 
-void AVRUnitBase::CrouchOnHMDZPosition()
+void AVRUnitBase::CrouchOnZPosition(float CurrentPosition)
 {
+	// HMDPosition.Z or 
 	if (StandingZ != KneelingZ)  // To avoid division by zero
 	{
 		float ExponentialScale = FMath::Exp(-ScaleCapsuleIfCrouched);
-		CrouchedNormedZ = (StandingZ - HMDPosition.Z) / (StandingZ - KneelingZ);
+		CrouchedNormedZ = (StandingZ - CurrentPosition) / (StandingZ - KneelingZ);
 		CrouchedNormedZ = FMath::Clamp(CrouchedNormedZ, 0.f, 1.f)*100.f;   // Ensure the value is between 0 and 1
 		GetCapsuleComponent()->SetCapsuleHalfHeight(88.f - CrouchedNormedZ*ExponentialScale);
 	}
 }
+
 
 void AVRUnitBase::NullActorWithHMDLocation()
 {
@@ -530,7 +498,7 @@ void AVRUnitBase::DecreaseAperture(float Amount, float Min, float BlendWeight, f
 
 void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 {
-	
+	if(EnableDebug)
 	if (VDevice == nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No Device Found!"));
@@ -539,11 +507,14 @@ void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 	}
 
 	const VirtDeviceInfo& info = VDevice->GetDeviceInfo();
+	if(EnableDebug)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Device Found: %ls"), info.ProductName);
+		UE_LOG(LogTemp, Warning, TEXT("Firmware Version: %d.%d"), info.MajorVersion, info.MinorVersion);
+		UE_LOG(LogTemp, Warning, TEXT("========================================\n"));
+	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Device Found: %ls"), info.ProductName);
-	UE_LOG(LogTemp, Warning, TEXT("Firmware Version: %d.%d"), info.MajorVersion, info.MinorVersion);
-	UE_LOG(LogTemp, Warning, TEXT("========================================\n"));
-
+	if(EnableDebug)
 	if (!VDevice->Open())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Unable to connect to Virtualizer!"));
@@ -558,69 +529,81 @@ void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 		UE_LOG(LogTemp, Warning, TEXT("========================================"));
 
 	MoveWithVirtualizer(VDevice->GetMovementSpeed());
+	CrouchOnZPosition(VDevice->GetPlayerHeight()+VCrouchOffset);
 	VRotation =  FRotator(0.0f, VDevice->GetPlayerOrientation() * 360 - VRotationOffset, 0.0f);
 }
 
-void AVRUnitBase::HandleHapticData(int32 selection)
+void AVRUnitBase::HandleHapticData(int32 selection, int32 value)
 {
+	if(EnableDebug)
     if (VDevice == nullptr)
     {
         UE_LOG(LogTemp, Warning, TEXT("No Device Found!"));
         return;
     }
 
+	if(EnableDebug)
     if (!VDevice->Open())
     {
         UE_LOG(LogTemp, Warning, TEXT("Unable to connect to Virtualizer!"));
         return;
     }
-	
-        // Log available options
-        UE_LOG(LogTemp, Warning, TEXT("Choose function:"));
-        UE_LOG(LogTemp, Warning, TEXT("0: Toggle active"));
-        UE_LOG(LogTemp, Warning, TEXT("1: Set Gain"));
-        UE_LOG(LogTemp, Warning, TEXT("2: Set Frequency"));
-        UE_LOG(LogTemp, Warning, TEXT("3: Set Volume"));
-        UE_LOG(LogTemp, Warning, TEXT("4: Quit"));
-	
+
+	if(EnableDebug)
+	{
+		// Log available options
+		UE_LOG(LogTemp, Warning, TEXT("Choose function:"));
+		UE_LOG(LogTemp, Warning, TEXT("0: Toggle active"));
+		UE_LOG(LogTemp, Warning, TEXT("1: Set Gain"));
+		UE_LOG(LogTemp, Warning, TEXT("2: Set Frequency"));
+		UE_LOG(LogTemp, Warning, TEXT("3: Set Volume"));
+		UE_LOG(LogTemp, Warning, TEXT("4: Quit"));
+		UE_LOG(LogTemp, Warning, TEXT("selection: %d"), selection);
+	}
 
         switch (selection)
         {
             case 0:
                 // Toggle the haptic device's state
                 VDevice->HapticStop();
-        		UE_LOG(LogTemp, Warning, TEXT("Haptic feedback stopped."));
+        		if(EnableDebug) UE_LOG(LogTemp, Warning, TEXT("Haptic feedback stopped."));
                 break;
 	        case 1:
         		// Set gain
         		VDevice->HapticPlay();
-        		UE_LOG(LogTemp, Warning, TEXT("Haptic feedback started."));
+        		if(EnableDebug) UE_LOG(LogTemp, Warning, TEXT("Haptic feedback started."));
         		break;
             case 2:
                 // Set gain
-                UE_LOG(LogTemp, Warning, TEXT("Set Gain (0-3):"));
+                if(EnableDebug) UE_LOG(LogTemp, Warning, TEXT("Set Gain (0-3):"));
+        	
                 VDevice->HapticSetGain(selection);
-                UE_LOG(LogTemp, Warning, TEXT("Haptic Gain set to: %d"), selection);
+        	
+                if(EnableDebug) UE_LOG(LogTemp, Warning, TEXT("Haptic Gain set to: %d"), value);
                 break;
 
             case 3:
                 // Set frequency
-                UE_LOG(LogTemp, Warning, TEXT("Set Frequency (10-80):"));
+                if(EnableDebug) UE_LOG(LogTemp, Warning, TEXT("Set Frequency (10-80):"));
+        	
                 VDevice->HapticSetFrequency(selection);
-                UE_LOG(LogTemp, Warning, TEXT("Haptic Frequency set to: %d"), selection);
+        	
+                if(EnableDebug) UE_LOG(LogTemp, Warning, TEXT("Haptic Frequency set to: %d"), value);
                 break;
 
             case 4:
                 // Set volume
-                UE_LOG(LogTemp, Warning, TEXT("Set Volume (0-100):"));
+                if(EnableDebug) UE_LOG(LogTemp, Warning, TEXT("Set Volume (0-100):"));
+        	
                 VDevice->HapticSetVolume(selection);
-                UE_LOG(LogTemp, Warning, TEXT("Haptic Volume set to: %d"), selection);
+        	
+                if(EnableDebug) UE_LOG(LogTemp, Warning, TEXT("Haptic Volume set to: %d"), value);
                 break;
 
             default:
                 // Stop haptic feedback and exit
                 VDevice->HapticStop();
-                UE_LOG(LogTemp, Warning, TEXT("Haptic feedback stopped. Exiting."));
+                if(EnableDebug) UE_LOG(LogTemp, Warning, TEXT("Haptic feedback stopped. Exiting."));
                 break;
         }
 }

@@ -42,6 +42,9 @@ public:
 	class UCameraComponent* Camera;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
+	bool EnableDebug = true;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	FVector HMDPosition;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
@@ -107,7 +110,7 @@ public:
 	
 	// Function to update the rotation based on HMD orientation
 	UFUNCTION(BlueprintCallable)
-	void UpdateRotation(FVector Position, FRotator Rotation);
+	void UpdateRotation(FVector Position, FRotator Rotation, float Offset);
 
 	//UFUNCTION(BlueprintCallable)
 	//void CalculateHeadLocation(float DeltaTime);
@@ -131,8 +134,8 @@ public:
 	float NormedVelocity;
 	// Function to normalize the HMD Z-Position
 	UFUNCTION(BlueprintCallable)
-	void CrouchOnHMDZPosition();
-
+	void CrouchOnZPosition(float CurrentPosition);
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	FVector LastHMDActorPosition;
 
@@ -202,7 +205,7 @@ public:
 	void GetVirtualizerData();
 
 	UFUNCTION(BlueprintCallable , Category = VR)
-	void HandleHapticData(int32 selection);
+	void HandleHapticData(int32 selection, int32 value);
 	
 	VirtDevice* VDevice;
 	
@@ -217,4 +220,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
 	float MaxVSpeed = 4.f; // m/s
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
+	float VCrouchOffset = 80.f;
+	
+	UFUNCTION(BlueprintImplementableEvent, Category = OpenVRFramework)
+	void VirtualizerMovement();
 };
