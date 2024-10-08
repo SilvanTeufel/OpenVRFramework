@@ -60,8 +60,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	float CrouchedNormedZ;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
-	float ScaleCapsuleIfCrouched = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
+	float ScaleCapsuleIfCrouched = 0.7f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	FVector HeadLocation;

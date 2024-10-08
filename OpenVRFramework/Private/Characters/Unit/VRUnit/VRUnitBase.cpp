@@ -349,8 +349,7 @@ void AVRUnitBase::CrouchOnHMDZPosition()
 {
 	if (StandingZ != KneelingZ)  // To avoid division by zero
 	{
-		float DecayRate = 0.75f; // Adjust this value to control the rate of decay
-		float ExponentialScale = FMath::Exp(-DecayRate * ScaleCapsuleIfCrouched);
+		float ExponentialScale = FMath::Exp(-ScaleCapsuleIfCrouched);
 		CrouchedNormedZ = (StandingZ - HMDPosition.Z) / (StandingZ - KneelingZ);
 		CrouchedNormedZ = FMath::Clamp(CrouchedNormedZ, 0.f, 1.f)*100.f;   // Ensure the value is between 0 and 1
 		GetCapsuleComponent()->SetCapsuleHalfHeight(88.f - CrouchedNormedZ*ExponentialScale);
