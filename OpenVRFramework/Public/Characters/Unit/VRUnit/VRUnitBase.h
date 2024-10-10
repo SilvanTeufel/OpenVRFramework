@@ -29,6 +29,15 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+private:
+	static const int VNumSamples = 10; // Number of samples to average
+	float VPlayerHeightValues[VNumSamples];
+	float VPlayerOrientationValues[VNumSamples];
+	float VMovementSpeedValues[VNumSamples];
+	float VMovementDirectionValues[VNumSamples];
+	int VIndex;
+	bool VInitialized;
+	
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -67,7 +76,7 @@ public:
 	float ScaleCapsuleIfCrouched = 0.7f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
-	FVector HeadLocation;
+	float HeadZLocation;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = VR, meta = (AllowPrivateAccess = "true"))
 	UMotionControllerComponent* LeftMotionController;
@@ -110,7 +119,7 @@ public:
 	
 	// Function to update the rotation based on HMD orientation
 	UFUNCTION(BlueprintCallable)
-	void UpdateRotation(FVector Position, FRotator Rotation, float Offset);
+	void UpdateRotation(FVector Position, FRotator Rotation, float Offset = 0.f);
 
 	//UFUNCTION(BlueprintCallable)
 	//void CalculateHeadLocation(float DeltaTime);
@@ -200,30 +209,33 @@ public:
 
 	UFUNCTION(BlueprintCallable , Category = VR)
 	void DecreaseAperture(float Amount = 1.f, float Min = 0.f, float BlendWeight = 0.25f, float Interval = 0.1f);
-
-	UFUNCTION(BlueprintCallable , Category = VR)
+	
+	UFUNCTION(BlueprintCallable , Category = Virtualizer)
 	void GetVirtualizerData();
 
-	UFUNCTION(BlueprintCallable , Category = VR)
+	UFUNCTION(BlueprintCallable , Category = Virtualizer)
 	void HandleHapticData(int32 selection, int32 value);
 	
 	VirtDevice* VDevice;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Virtualizer)
 	FRotator VRotation;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
-	float VRotationOffset = 180.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Virtualizer)
+	bool VRotationOffsetInitialised = false;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Virtualizer)
+	float VRotationOffset = 0.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Virtualizer)
 	bool EnableVirtualizer = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Virtualizer)
 	float MaxVSpeed = 4.f; // m/s
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Virtualizer)
 	float VCrouchOffset = 80.f;
 	
-	UFUNCTION(BlueprintImplementableEvent, Category = OpenVRFramework)
+	UFUNCTION(BlueprintImplementableEvent, Category = Virtualizer)
 	void VirtualizerMovement();
 };

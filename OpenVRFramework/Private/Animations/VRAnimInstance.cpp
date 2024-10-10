@@ -9,7 +9,7 @@
 void UVRAnimInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UVRAnimInstance, Head);
+	DOREPLIFETIME(UVRAnimInstance, HeadZLocation);
 	DOREPLIFETIME(UVRAnimInstance, LeftHandPosition);
 	DOREPLIFETIME(UVRAnimInstance, RightHandPosition);
 	DOREPLIFETIME(UVRAnimInstance, LeftHandRotation);
@@ -30,14 +30,20 @@ void UVRAnimInstance::NativeUpdateAnimation(float Deltaseconds)
 
 		if(VRUnitBase != nullptr)
 		{
-			Head = VRUnitBase->HeadLocation;
+			HeadZLocation = VRUnitBase->HeadZLocation;
 			HeadRotation = VRUnitBase->HMDRotation;
+			HeadLocation = VRUnitBase->HMDPosition;
+			IsVirtualizerEnabled = VRUnitBase->EnableVirtualizer;
 			LeftHandPosition = VRUnitBase->LeftHandLocation;
 			RightHandPosition = VRUnitBase->RightHandLocation;
 			LeftHandRotation = VRUnitBase->LeftHandRotation;
 			RightHandRotation = VRUnitBase->RightHandRotation;
 			Crouch = VRUnitBase->CrouchedNormedZ;
 			Velocity = VRUnitBase->NormedVelocity;
+			VRotation = VRUnitBase->VRotation;
+			VRotationOffset = VRUnitBase->VRotationOffset;
+			ActorLocation = VRUnitBase->GetActorLocation();
+			ActorRotation = VRUnitBase->GetActorRotation();
 		}
 	}
 	

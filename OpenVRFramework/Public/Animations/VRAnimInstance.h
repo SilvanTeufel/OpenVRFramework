@@ -33,10 +33,28 @@ public:
 	FRotator RightHandRotation;
 	
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
-	FVector Head;
+	float HeadZLocation;
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
 	FRotator HeadRotation;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	FVector HeadLocation;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	bool IsVirtualizerEnabled = false;
+	
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	FVector ActorLocation;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	FRotator ActorRotation;
+	
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	float VRotationOffset;
+	
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	FRotator VRotation;
 	
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
 	float Crouch;

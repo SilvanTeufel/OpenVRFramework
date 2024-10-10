@@ -66,6 +66,8 @@ void AVRUnitBase::BeginPlay()
 	// Null the actor with the HMD location
 	NullActorWithHMDLocation();
 	VDevice = Virt::FindDevice();
+	//InitVirtualizerRotationOffset();
+	
 }
 
 
@@ -80,7 +82,7 @@ void AVRUnitBase::Tick(float DeltaTime)
 	SetRotationAndPosition();
 	
 	if (!EnableVirtualizer) UpdateRotation(HMDPosition, HMDRotation, -90.f);
-	else UpdateRotation(HMDPosition, VRotation, -120.f);
+	else UpdateRotation(HMDPosition, VRotation, -90);
 	
 	if (!EnableVirtualizer) CrouchOnZPosition(HMDPosition.Z);
 
@@ -89,7 +91,8 @@ void AVRUnitBase::Tick(float DeltaTime)
 	CalculateHandLocation(DeltaTime);
 	CalculateHandRotation();
 	
-	if (!EnableVirtualizer) SetActorToHMDChange(DeltaTime);
+	if (!EnableVirtualizer)
+		SetActorToHMDChange(DeltaTime);
 }
 
 
@@ -99,7 +102,7 @@ void AVRUnitBase::SetRotationAndPosition()
 	Camera->SetWorldRotation(HMDRotation);
 }
 
-void AVRUnitBase::UpdateRotation(FVector Position, FRotator Rotation, float Offset = 0.f)
+void AVRUnitBase::UpdateRotation(FVector Position, FRotator Rotation, float Offset)
 {
 	// Draw a debug line from the HMD position
 	FVector HMDDirection = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
@@ -267,7 +270,7 @@ void AVRUnitBase::MoveWithVirtualizer(float Speed)
 
 		float NormSpeed; // Calculate NormSpeed is between 0 and 100 and dependent on Speed and MaxVSpeed. If Speed is MaxVSpeed NormSpeed is 1
 
-		if (Speed != 0.0f)
+		if (Speed >= 0.2f)
 		{
 			NormSpeed = FMath::Clamp(Speed / MaxVSpeed, 0.0f, 1.0f);
 			VirtualizerMovement();
@@ -313,6 +316,11 @@ void AVRUnitBase::SetMovementDirection( FVector Value)
 
 void AVRUnitBase::CrouchOnZPosition(float CurrentPosition)
 {
+	UE_LOG(LogTemp, Warning, TEXT("CurrentPosition: %f"), CurrentPosition);
+	if(CurrentPosition > StandingZ)
+		CurrentPosition = StandingZ;
+
+	HeadZLocation = CurrentPosition;
 	// HMDPosition.Z or 
 	if (StandingZ != KneelingZ)  // To avoid division by zero
 	{
@@ -499,38 +507,101 @@ void AVRUnitBase::DecreaseAperture(float Amount, float Min, float BlendWeight, f
 void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 {
 	if(EnableDebug)
-	if (VDevice == nullptr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("No Device Found!"));
-		UE_LOG(LogTemp, Warning, TEXT("========================================"));
-		return;
-	}
+		if (VDevice == nullptr)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("No Device Found!"));
+			UE_LOG(LogTemp, Warning, TEXT("========================================"));
+			return;
+		}
 
-	const VirtDeviceInfo& info = VDevice->GetDeviceInfo();
-	if(EnableDebug)
-	{
+		const VirtDeviceInfo& info = VDevice->GetDeviceInfo();
+
 		UE_LOG(LogTemp, Warning, TEXT("Device Found: %ls"), info.ProductName);
 		UE_LOG(LogTemp, Warning, TEXT("Firmware Version: %d.%d"), info.MajorVersion, info.MinorVersion);
 		UE_LOG(LogTemp, Warning, TEXT("========================================\n"));
-	}
+	
 
-	if(EnableDebug)
-	if (!VDevice->Open())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Unable to connect to Virtualizer!"));
-		UE_LOG(LogTemp, Warning, TEXT("========================================"));
-		return;
-	}
+
+		if (!VDevice->Open())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Unable to connect to Virtualizer!"));
+			UE_LOG(LogTemp, Warning, TEXT("========================================"));
+			return;
+		}
+	
 		UE_LOG(LogTemp, Warning, TEXT("========================================"));
 		UE_LOG(LogTemp, Warning, TEXT("Ring Height:        %10.2fcm"), VDevice->GetPlayerHeight());
 		UE_LOG(LogTemp, Warning, TEXT("Player Orientation: %10.2f°"), VDevice->GetPlayerOrientation() * 360);
 		UE_LOG(LogTemp, Warning, TEXT("Movement Speed:     %10.2fm/s"), VDevice->GetMovementSpeed());
 		UE_LOG(LogTemp, Warning, TEXT("Movement Direction: %10.2f°"), VDevice->GetMovementDirection() * 180);
 		UE_LOG(LogTemp, Warning, TEXT("========================================"));
+	}
 
+
+
+
+// Retrieve current values
+    float CurrentPlayerHeight = VDevice->GetPlayerHeight();
+    float CurrentPlayerOrientation = VDevice->GetPlayerOrientation() * 360.0f;
+    float CurrentMovementSpeed = VDevice->GetMovementSpeed();
+    float CurrentMovementDirection = VDevice->GetMovementDirection() * 180.0f;
+
+    // Store current values into arrays
+    VPlayerHeightValues[VIndex] = CurrentPlayerHeight;
+    VPlayerOrientationValues[VIndex] = CurrentPlayerOrientation;
+    VMovementSpeedValues[VIndex] = CurrentMovementSpeed;
+    VMovementDirectionValues[VIndex] = CurrentMovementDirection;
+
+    // Update index and check if arrays are fully populated
+    VIndex = (VIndex + 1) % VNumSamples;
+    if (VIndex == 0)
+    {
+        VInitialized = true; // After the first 10 values are collected
+    }
+
+    // Determine the number of valid samples
+    int NumValidSamples = VInitialized ? VNumSamples : VIndex;
+
+    // Compute averages
+    float SumPlayerHeight = 0.0f;
+    float SumPlayerOrientation = 0.0f;
+    float SumMovementSpeed = 0.0f;
+    float SumMovementDirection = 0.0f;
+
+    for (int i = 0; i < NumValidSamples; ++i)
+    {
+        SumPlayerHeight += VPlayerHeightValues[i];
+        SumPlayerOrientation += VPlayerOrientationValues[i];
+        SumMovementSpeed += VMovementSpeedValues[i];
+        SumMovementDirection += VMovementDirectionValues[i];
+    }
+
+    float AvgPlayerHeight = SumPlayerHeight / NumValidSamples;
+    float AvgPlayerOrientation = SumPlayerOrientation / NumValidSamples;
+    float AvgMovementSpeed = SumMovementSpeed / NumValidSamples;
+    float AvgMovementDirection = SumMovementDirection / NumValidSamples;
+
+	if(EnableDebug)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("========================================"));
+		UE_LOG(LogTemp, Warning, TEXT("Average Ring Height:        %10.2f cm"), AvgPlayerHeight);
+		UE_LOG(LogTemp, Warning, TEXT("Average Player Orientation: %10.2f°"), AvgPlayerOrientation);
+		UE_LOG(LogTemp, Warning, TEXT("Average Movement Speed:     %10.2f m/s"), AvgMovementSpeed);
+		UE_LOG(LogTemp, Warning, TEXT("Average Movement Direction: %10.2f°"), AvgMovementDirection);
+		UE_LOG(LogTemp, Warning, TEXT("========================================"));
+	}
+	
 	MoveWithVirtualizer(VDevice->GetMovementSpeed());
-	CrouchOnZPosition(VDevice->GetPlayerHeight()+VCrouchOffset);
-	VRotation =  FRotator(0.0f, VDevice->GetPlayerOrientation() * 360 - VRotationOffset, 0.0f);
+	CrouchOnZPosition((AvgPlayerHeight-50.f)*1.3f+80.f); // +VCrouchOffset
+	
+	if(!VRotationOffsetInitialised && VInitialized)
+	{
+		VRotationOffset = HMDRotation.Yaw-AvgPlayerOrientation;
+		VRotationOffsetInitialised = true;
+	}
+
+	VRotation =  FRotator(0.0f, (VDevice->GetPlayerOrientation() * 360.0f)+VRotationOffset, 0.0f);
 }
 
 void AVRUnitBase::HandleHapticData(int32 selection, int32 value)

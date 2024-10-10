@@ -169,7 +169,7 @@ void AProjectile::Impact_Implementation(AActor* ImpactTarget)
 	{
 		float NewDamage = ShootingUnit->Attributes->GetAttackDamage() - UnitToHit->Attributes->GetArmor();
 			
-		if(ShootingUnit->IsDoingMagicDamage)
+		if(ShootingUnit && ShootingUnit->IsDoingMagicDamage)
 			NewDamage = ShootingUnit->Attributes->GetAttackDamage() - UnitToHit->Attributes->GetMagicResistance();
 			
 		if(UnitToHit->Attributes->GetShield() <= 0)
