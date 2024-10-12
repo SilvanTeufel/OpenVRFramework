@@ -85,9 +85,8 @@ void AVRUnitBase::Tick(float DeltaTime)
 	else UpdateRotation(HMDPosition, VRotation, -90);
 	
 	if (!EnableVirtualizer) CrouchOnZPosition(HMDPosition.Z);
-
-
-
+	else CrouchOnZPosition(VCrouch);
+	
 	CalculateHandLocation(DeltaTime);
 	CalculateHandRotation();
 	
@@ -247,19 +246,19 @@ void AVRUnitBase::MoveJoystick( float X, float Y, float Speed)
 	}
 }
 
-void AVRUnitBase::MoveWithVirtualizer(float Speed)
+void AVRUnitBase::MoveWithVirtualizer(float Speed, float Direction)
 {
 	// Ensure that there is a valid movement component
 	if (UCharacterMovementComponent* CharMovement = GetCharacterMovement())
 	{
 		// Get the character's control rotation
-		FRotator CurrentHMDRotation = HMDRotation;
+		FRotator CurrentRotation;
 		// Only use the yaw rotation for movement
-		CurrentHMDRotation.Pitch = 0.0f;
-		CurrentHMDRotation.Roll = 0.0f;
-
+		CurrentRotation.Pitch = 0.0f;
+		CurrentRotation.Roll = 0.0f;
+		CurrentRotation.Yaw = Direction;
 		// Get the forward and right vectors based on the control rotation
-		FVector ForwardDirection = FRotationMatrix(CurrentHMDRotation).GetScaledAxis(EAxis::X);
+		FVector ForwardDirection = FRotationMatrix(CurrentRotation).GetScaledAxis(EAxis::X);
 
 
 		// Calculate the movement direction based on the joystick input
@@ -506,6 +505,7 @@ void AVRUnitBase::DecreaseAperture(float Amount, float Min, float BlendWeight, f
 
 void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 {
+	
 	if(EnableDebug)
 	{
 		if (VDevice == nullptr)
@@ -540,68 +540,22 @@ void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 
 
 
-
-// Retrieve current values
-    float CurrentPlayerHeight = VDevice->GetPlayerHeight();
-    float CurrentPlayerOrientation = VDevice->GetPlayerOrientation() * 360.0f;
-    float CurrentMovementSpeed = VDevice->GetMovementSpeed();
-    float CurrentMovementDirection = VDevice->GetMovementDirection() * 180.0f;
-
-    // Store current values into arrays
-    VPlayerHeightValues[VIndex] = CurrentPlayerHeight;
-    VPlayerOrientationValues[VIndex] = CurrentPlayerOrientation;
-    VMovementSpeedValues[VIndex] = CurrentMovementSpeed;
-    VMovementDirectionValues[VIndex] = CurrentMovementDirection;
-
-    // Update index and check if arrays are fully populated
-    VIndex = (VIndex + 1) % VNumSamples;
-    if (VIndex == 0)
-    {
-        VInitialized = true; // After the first 10 values are collected
-    }
-
-    // Determine the number of valid samples
-    int NumValidSamples = VInitialized ? VNumSamples : VIndex;
-
-    // Compute averages
-    float SumPlayerHeight = 0.0f;
-    float SumPlayerOrientation = 0.0f;
-    float SumMovementSpeed = 0.0f;
-    float SumMovementDirection = 0.0f;
-
-    for (int i = 0; i < NumValidSamples; ++i)
-    {
-        SumPlayerHeight += VPlayerHeightValues[i];
-        SumPlayerOrientation += VPlayerOrientationValues[i];
-        SumMovementSpeed += VMovementSpeedValues[i];
-        SumMovementDirection += VMovementDirectionValues[i];
-    }
-
-    float AvgPlayerHeight = SumPlayerHeight / NumValidSamples;
-    float AvgPlayerOrientation = SumPlayerOrientation / NumValidSamples;
-    float AvgMovementSpeed = SumMovementSpeed / NumValidSamples;
-    float AvgMovementDirection = SumMovementDirection / NumValidSamples;
-
-	if(EnableDebug)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("========================================"));
-		UE_LOG(LogTemp, Warning, TEXT("Average Ring Height:        %10.2f cm"), AvgPlayerHeight);
-		UE_LOG(LogTemp, Warning, TEXT("Average Player Orientation: %10.2f°"), AvgPlayerOrientation);
-		UE_LOG(LogTemp, Warning, TEXT("Average Movement Speed:     %10.2f m/s"), AvgMovementSpeed);
-		UE_LOG(LogTemp, Warning, TEXT("Average Movement Direction: %10.2f°"), AvgMovementDirection);
-		UE_LOG(LogTemp, Warning, TEXT("========================================"));
-	}
+	VSpeed = VDevice->GetMovementSpeed();
 	
-	MoveWithVirtualizer(VDevice->GetMovementSpeed());
-	CrouchOnZPosition((AvgPlayerHeight-50.f)*1.3f+80.f); // +VCrouchOffset
+
+	VCrouch = (VDevice->GetPlayerHeight()-VCrouchPosition)*VCrouchMultiplier+VCrouchOffset;
 	
-	if(!VRotationOffsetInitialised && VInitialized)
+	if(!VRotationOffsetInitialised)
 	{
-		VRotationOffset = HMDRotation.Yaw-AvgPlayerOrientation;
+		UE_LOG(LogTemp, Warning, TEXT("->Rotation Offset Initialised<-"));
+		VRotationOffset = HMDRotation.Yaw-VDevice->GetPlayerOrientation()* 360.0f;
 		VRotationOffsetInitialised = true;
 	}
 
 	VRotation =  FRotator(0.0f, (VDevice->GetPlayerOrientation() * 360.0f)+VRotationOffset, 0.0f);
+
+	VMovementDirection = VDevice->GetMovementDirection() * 180.f;
+	MoveWithVirtualizer(VSpeed, VMovementDirection);
 }
 
 void AVRUnitBase::HandleHapticData(int32 selection, int32 value)

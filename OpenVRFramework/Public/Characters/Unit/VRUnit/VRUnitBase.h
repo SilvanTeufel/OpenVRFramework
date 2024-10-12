@@ -29,15 +29,6 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-private:
-	static const int VNumSamples = 10; // Number of samples to average
-	float VPlayerHeightValues[VNumSamples];
-	float VPlayerOrientationValues[VNumSamples];
-	float VMovementSpeedValues[VNumSamples];
-	float VMovementDirectionValues[VNumSamples];
-	int VIndex;
-	bool VInitialized;
-	
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -134,7 +125,7 @@ public:
 	void MoveJoystick( float X, float Y, float Speed);
 
 	UFUNCTION(BlueprintCallable)
-	void MoveWithVirtualizer(float Speed);
+	void MoveWithVirtualizer(float Speed, float Direction);
 	
 	UFUNCTION(BlueprintCallable)
 	float CreateNormedVelocity(UCharacterMovementComponent* CharMovement, float Speed);
@@ -218,9 +209,18 @@ public:
 	
 	VirtDevice* VDevice;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Virtualizer)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Virtualizer)
 	FRotator VRotation;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Virtualizer)
+	float VSpeed = 0.f;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Virtualizer)
+	float VMovementDirection;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Virtualizer)
+	float VCrouch = 0.f;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Virtualizer)
 	bool VRotationOffsetInitialised = false;
 	
@@ -235,6 +235,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Virtualizer)
 	float VCrouchOffset = 80.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Virtualizer)
+	float VCrouchPosition = 50.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Virtualizer)
+	float VCrouchMultiplier = 1.3f;
 	
 	UFUNCTION(BlueprintImplementableEvent, Category = Virtualizer)
 	void VirtualizerMovement();
