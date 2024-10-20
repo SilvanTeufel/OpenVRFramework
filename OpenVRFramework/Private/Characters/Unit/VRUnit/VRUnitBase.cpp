@@ -25,16 +25,11 @@ AVRUnitBase::AVRUnitBase(const FObjectInitializer& ObjectInitializer):Super(Obje
 	VROrigin = CreateDefaultSubobject<USceneComponent>(TEXT("VROrigin"));
 	VROrigin->SetupAttachment(RootComponent);
 	
-
 	// Create Camera Component
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(VROrigin);
 	GetMesh()->SetupAttachment(GetCapsuleComponent());
-/*
-	// Initialize reference Z-Positions
-	StandingZ = 180.f;  // Example value, adjust according to your setup
-	KneelingZ = 90.f;   // Example value, adjust according to your setup
-*/
+
 	bUseControllerRotationYaw = true; // Ensure the character uses the controller's rotation for yaw
 
 	if (UCharacterMovementComponent* CharMovement = GetCharacterMovement())
@@ -66,8 +61,7 @@ void AVRUnitBase::BeginPlay()
 	// Null the actor with the HMD location
 	NullActorWithHMDLocation();
 	VDevice = Virt::FindDevice();
-	//InitVirtualizerRotationOffset();
-	
+
 }
 
 
@@ -77,7 +71,11 @@ void AVRUnitBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (EnableVirtualizer) GetVirtualizerData();
+	if (EnableVirtualizer)
+	{
+		MoveWithVirtualizer(VSpeed, VRotation.Yaw);
+		GetVirtualizerData();
+	}
 	
 	SetRotationAndPosition();
 	
@@ -248,6 +246,11 @@ void AVRUnitBase::MoveJoystick( float X, float Y, float Speed)
 
 void AVRUnitBase::MoveWithVirtualizer(float Speed, float Direction)
 {
+	float DirectionToMove = Direction;
+	if(VMovementDirection < 0)
+	{
+		DirectionToMove =Direction-180.f;
+	}
 	// Ensure that there is a valid movement component
 	if (UCharacterMovementComponent* CharMovement = GetCharacterMovement())
 	{
@@ -256,7 +259,7 @@ void AVRUnitBase::MoveWithVirtualizer(float Speed, float Direction)
 		// Only use the yaw rotation for movement
 		CurrentRotation.Pitch = 0.0f;
 		CurrentRotation.Roll = 0.0f;
-		CurrentRotation.Yaw = Direction;
+		CurrentRotation.Yaw = DirectionToMove;
 		// Get the forward and right vectors based on the control rotation
 		FVector ForwardDirection = FRotationMatrix(CurrentRotation).GetScaledAxis(EAxis::X);
 
@@ -520,8 +523,7 @@ void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 		UE_LOG(LogTemp, Warning, TEXT("Device Found: %ls"), info.ProductName);
 		UE_LOG(LogTemp, Warning, TEXT("Firmware Version: %d.%d"), info.MajorVersion, info.MinorVersion);
 		UE_LOG(LogTemp, Warning, TEXT("========================================\n"));
-	
-
+		
 
 		if (!VDevice->Open())
 		{
@@ -541,8 +543,6 @@ void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 
 
 	VSpeed = VDevice->GetMovementSpeed();
-	
-
 	VCrouch = (VDevice->GetPlayerHeight()-VCrouchPosition)*VCrouchMultiplier+VCrouchOffset;
 	
 	if(!VRotationOffsetInitialised)
@@ -555,7 +555,7 @@ void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 	VRotation =  FRotator(0.0f, (VDevice->GetPlayerOrientation() * 360.0f)+VRotationOffset, 0.0f);
 
 	VMovementDirection = VDevice->GetMovementDirection() * 180.f;
-	MoveWithVirtualizer(VSpeed, VMovementDirection);
+	
 }
 
 void AVRUnitBase::HandleHapticData(int32 selection, int32 value)
