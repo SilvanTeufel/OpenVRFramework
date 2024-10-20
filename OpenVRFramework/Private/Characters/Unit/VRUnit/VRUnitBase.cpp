@@ -318,7 +318,6 @@ void AVRUnitBase::SetMovementDirection( FVector Value)
 
 void AVRUnitBase::CrouchOnZPosition(float CurrentPosition)
 {
-	UE_LOG(LogTemp, Warning, TEXT("CurrentPosition: %f"), CurrentPosition);
 	if(CurrentPosition > StandingZ)
 		CurrentPosition = StandingZ;
 
