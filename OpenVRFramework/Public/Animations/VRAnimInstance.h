@@ -64,14 +64,15 @@ public:
 	
 	
 	
-	    // Cumulative Pitch
-        UPROPERTY(BlueprintReadOnly, Category = "VR Animation")
-        float CumulativePitch = 0.f;
-    
-        // Previous Pitch to calculate delta
-        float PreviousPitch = 0.f;
-    
-        // Optional: Enable or disable cumulative tracking
-        UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
-        bool EnableCumulativePitchDebug = false;
+	// Accumulated unwrapped Yaw value
+	float UnwrappedYaw = 0.0f;
+
+	// Previous raw Yaw value
+	float PreviousRawYaw = 0.0f;
+
+	// Initial unwrapped Yaw value (for normalization reference)
+	float InitialUnwrappedYaw = 0.0f;
+
+	// Flag to check if this is the first update
+	bool bFirstUpdate = true;
 };

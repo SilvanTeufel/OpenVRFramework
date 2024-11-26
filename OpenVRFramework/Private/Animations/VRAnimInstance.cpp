@@ -42,28 +42,30 @@ void UVRAnimInstance::NativeUpdateAnimation(float Deltaseconds)
 
 
 		
-			if (RightHandRotation.Roll != VRUnitBase->RightHandRotation.Roll)
+			if (RightHandRotation.Yaw != VRUnitBase->RightHandRotation.Yaw)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Yaw: %f"),  VRUnitBase->RightHandRotation.Yaw);
+				//UE_LOG(LogTemp, Warning, TEXT("Yaw: %f"),  VRUnitBase->RightHandRotation.Yaw);
 				//UE_LOG(LogTemp, Warning, TEXT("Yaw: %f"), RightHandRotation.Yaw);
-				UE_LOG(LogTemp, Warning, TEXT("Roll: %f"), RightHandRotation.Roll);
+				UE_LOG(LogTemp, Warning, TEXT("Yaw: %f"), VRUnitBase->RightHandRotation.Yaw);
+				if (GEngine)
+				{
+					FString DebugMessage = FString::Printf(TEXT("Yaw: %f // %f"), RightHandRotation.Yaw, VRUnitBase->RightHandRotation.Yaw);
+					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, DebugMessage);
+				}
 			}
 			//RightHandRotation.Yaw = VRUnitBase->RightHandRotation.Yaw;
-			RightHandRotation.Roll = FMath::Clamp(VRUnitBase->RightHandRotation.Roll, -140.f, -120.f);
-			RightHandRotation.Yaw = FMath::Clamp(VRUnitBase->RightHandRotation.Yaw, 70.f, 130.f);
-			if (RightHandRotation.Roll <= 0.f)
-			{
-				RightHandRotation.Pitch = 70.f + (-1)*(VRUnitBase->RightHandRotation.Pitch-70.f);
+			//RightHandRotation.Roll = FMath::Clamp(VRUnitBase->RightHandRotation.Roll, -140.f, -120.f);
+			RightHandRotation.Roll = VRUnitBase->RightHandRotation.Roll;
+			//RightHandRotation.Yaw = VRUnitBase->RightHandRotation.Yaw;
+		
+			// Clamp the normalized value between 0 and 1
+			RightHandRotation.Yaw = VRUnitBase->RightHandRotation.Yaw;
+
+			// Now you can use NormalizedYaw in your application
+		
 	
-				//RightHandRotation.Yaw = FMath::Clamp(70.f + (-1)*(VRUnitBase->RightHandRotation.Yaw-70.f), 70.f, 130.f);
-				
-			}
-			else
-			{
-				RightHandRotation.Pitch = VRUnitBase->RightHandRotation.Pitch;
-				//RightHandRotation.Yaw = FMath::Clamp(VRUnitBase->RightHandRotation.Yaw, 70.f, 130.f);
-			}
-			
+			RightHandRotation.Pitch = VRUnitBase->RightHandRotation.Pitch;
+
 			//if (RightHandRotation.Pitch <= -360.f) RightHandRotation.Pitch = RightHandRotation.Pitch*(-1.f);
 			//UE_LOG(LogTemp, Warning, TEXT("Roll: %f"), RightHandRotation.Roll);
 			//UE_LOG(LogTemp, Warning, TEXT("Pitch: %f"), RightHandRotation.Pitch);

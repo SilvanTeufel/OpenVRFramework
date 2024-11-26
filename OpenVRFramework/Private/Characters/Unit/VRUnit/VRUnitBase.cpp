@@ -179,7 +179,7 @@ void AVRUnitBase::CalculateHandLocation(float DeltaTime)
 	{
 		FVector CurrentLeftHandPosition = LeftMotionController->GetComponentLocation();
 		FVector VHeadToLHand = CurrentLeftHandPosition-HMDPosition;
-		LeftHandLocation = Camera->GetComponentLocation() + VHeadToLHand - FVector(ALocation.X, ALocation.Y, 0.f); // + ForwardDirection*25.f;
+		LeftHandLocation = Camera->GetComponentLocation() + VHeadToLHand - FVector(ALocation.X, ALocation.Y, -15.f); // + ForwardDirection*25.f;
 		if(EnableDebug) DrawDebugSphere(GetWorld(), LeftHandLocation, 5.0f, 12, FColor::Red, false, -1.0f, 0, 1.0f);
 
 	}
@@ -189,7 +189,7 @@ void AVRUnitBase::CalculateHandLocation(float DeltaTime)
 	{
 		FVector CurrentRightHandPosition = RightMotionController->GetComponentLocation();
 		FVector VHeadToRHand = CurrentRightHandPosition-HMDPosition;
-		RightHandLocation = Camera->GetComponentLocation() + VHeadToRHand - FVector(ALocation.X, ALocation.Y, 0.f); // + ForwardDirection*25.f;
+		RightHandLocation = Camera->GetComponentLocation() + VHeadToRHand - FVector(ALocation.X, ALocation.Y, -15.f); // + ForwardDirection*25.f;
 		if(EnableDebug) DrawDebugSphere(GetWorld(), RightHandLocation, 5.0f, 12, FColor::Blue, false, -1.0f, 0, 1.0f);
 	}
 
@@ -219,7 +219,7 @@ void AVRUnitBase::CalculateHandRotation()
 		if(EnableDebug)
 		DrawDebugCoordinateSystem(
 			GetWorld(),
-			LeftMotionController->GetComponentLocation(),
+			LeftHandLocation,
 			LeftHandRotation,
 			20.0f, // Size of the coordinate system
 			false, // Persistent lines
@@ -245,7 +245,7 @@ void AVRUnitBase::CalculateHandRotation()
 		if(EnableDebug)
 		DrawDebugCoordinateSystem(
 			GetWorld(),
-			RightMotionController->GetComponentLocation(),
+			RightHandLocation,
 			RightHandRotation,
 			20.0f, // Size of the coordinate system
 			false, // Persistent lines
