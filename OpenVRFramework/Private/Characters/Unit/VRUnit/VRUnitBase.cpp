@@ -57,13 +57,50 @@ AVRUnitBase::AVRUnitBase(const FObjectInitializer& ObjectInitializer):Super(Obje
 void AVRUnitBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	// Check if VDevice is valid before calling Close()
+	if (VDevice)
+	{
+		VDevice->Close();
+		VDevice = nullptr; // Optionally set to nullptr to avoid dangling pointers
+	}
 	// Null the actor with the HMD location
 	NullActorWithHMDLocation();
 	VDevice = Virt::FindDevice();
+	
+	StartInitTimer();
 
 }
 
+void AVRUnitBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	// Check if VDevice is valid before calling Close()
+	if (VDevice)
+	{
+		VDevice->Close();
+		VDevice = nullptr; // Optionally set to nullptr to avoid dangling pointers
+	}
+}
+void AVRUnitBase::StartInitTimer()
+{
+	// Set up the timer to call ResetVRotationOffsetInitialised after 2 seconds
+	GetWorldTimerManager().SetTimer(
+		TimerHandle_ResetVRotationOffsetInitialised, // Timer handle
+		this,                                        // Object to call the function on
+		&AVRUnitBase::ResetVInitialised, // Function to call
+		2.0f,                                        // Delay in seconds
+		false                                        // Looping? False means it will only call once
+	);
+}
+
+void AVRUnitBase::ResetVInitialised()
+{
+	VInitialised = false;
+
+	// Optionally clear the timer if you no longer need it
+	GetWorldTimerManager().ClearTimer(TimerHandle_ResetVRotationOffsetInitialised);
+}
 
 
 // Called every frame
@@ -114,7 +151,10 @@ void AVRUnitBase::UpdateRotation(FVector Position, FRotator Rotation, float Offs
 	
 	// Set the capsule component's rotation to match the HMD's yaw rotation
 	GetMesh()->SetRelativeRotation(NewRotation);
-	Camera->SetRelativeLocation(FVector(HMDDirection.X*10.f, HMDDirection.Y*10.f, 190.f));
+	//SetActorRotation(NewRotation);
+	GetMesh()->SetRelativeLocation(FVector(HMDDirection.X*-10.f, HMDDirection.Y*-10.f, GetMesh()->GetRelativeLocation().Z));
+	//Camera->SetRelativeLocation(FVector(HMDDirection.X*20.f, HMDDirection.Y*20.f, 190.f));
+	//VROrigin->SetRelativeRotation(NewRotation);
 }
 
 
@@ -139,7 +179,7 @@ void AVRUnitBase::CalculateHandLocation(float DeltaTime)
 	{
 		FVector CurrentLeftHandPosition = LeftMotionController->GetComponentLocation();
 		FVector VHeadToLHand = CurrentLeftHandPosition-HMDPosition;
-		LeftHandLocation = Camera->GetComponentLocation() + VHeadToLHand - FVector(ALocation.X, ALocation.Y, 0.f) + ForwardDirection*25.f;
+		LeftHandLocation = Camera->GetComponentLocation() + VHeadToLHand - FVector(ALocation.X, ALocation.Y, 0.f); // + ForwardDirection*25.f;
 		if(EnableDebug) DrawDebugSphere(GetWorld(), LeftHandLocation, 5.0f, 12, FColor::Red, false, -1.0f, 0, 1.0f);
 
 	}
@@ -149,7 +189,7 @@ void AVRUnitBase::CalculateHandLocation(float DeltaTime)
 	{
 		FVector CurrentRightHandPosition = RightMotionController->GetComponentLocation();
 		FVector VHeadToRHand = CurrentRightHandPosition-HMDPosition;
-		RightHandLocation = Camera->GetComponentLocation() + VHeadToRHand - FVector(ALocation.X, ALocation.Y, 0.f) + ForwardDirection*25.f;
+		RightHandLocation = Camera->GetComponentLocation() + VHeadToRHand - FVector(ALocation.X, ALocation.Y, 0.f); // + ForwardDirection*25.f;
 		if(EnableDebug) DrawDebugSphere(GetWorld(), RightHandLocation, 5.0f, 12, FColor::Blue, false, -1.0f, 0, 1.0f);
 	}
 
@@ -175,6 +215,7 @@ void AVRUnitBase::CalculateHandRotation()
 		LeftHandRotation = CurrentLeftHandRotation;
 
 		// Optional: Draw debug sphere to visualize rotation if needed
+		
 		if(EnableDebug)
 		DrawDebugCoordinateSystem(
 			GetWorld(),
@@ -198,7 +239,9 @@ void AVRUnitBase::CalculateHandRotation()
 		
 		RightHandRotation = CurrentRightHandRotation;
 
+	
 		// Optional: Draw debug sphere to visualize rotation if needed
+		
 		if(EnableDebug)
 		DrawDebugCoordinateSystem(
 			GetWorld(),
@@ -212,6 +255,8 @@ void AVRUnitBase::CalculateHandRotation()
 		);
 	}
 }
+
+
 
 
 void AVRUnitBase::MoveJoystick( float X, float Y, float Speed)
@@ -394,7 +439,45 @@ void AVRUnitBase::SetActorToHMDChange(float DeltaTime)
 	
 }
 
+void AVRUnitBase::AttachActorsToHand(FName SocketName, FVector HandLocation)
+{
+	TArray<FHitResult> OutHits;
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.AddIgnoredActor(this);
 
+	GetWorld()->SweepMultiByChannel(
+		OutHits,
+		HandLocation,
+		HandLocation + FVector(1.0f, 0.0f, 0.0f), // small movement for detection
+		FQuat::Identity,
+		ECC_PhysicsBody,
+		FCollisionShape::MakeSphere(10.0f),
+		CollisionParams
+	);
+
+	for (const FHitResult& Hit : OutHits)
+	{
+		AActor* HitActor = Hit.GetActor();
+		if (HitActor && HitActor->GetRootComponent())
+		{
+			if (GetMesh()->DoesSocketExist(SocketName))
+			{
+				// Attach the actor to the socket
+				HitActor->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, SocketName);
+
+				/*
+				// Get the forward vector of the socket
+				FVector SocketForwardVector = GetMesh()->GetSocketTransform(SocketName).GetRotation().GetForwardVector();
+
+				FRotator MeshRot = GetMesh()->GetRelativeRotation();
+				// Set the actor's rotation to align with the socket's forward vector
+				FRotator NewRotation =  FRotator(-45.f, MeshRot.Yaw+90.f, 0.f );//SocketForwardVector.Rotation();
+				HitActor->SetActorRotation(NewRotation); */
+			}
+		}
+	}
+}
+/*
 void AVRUnitBase::AttachActorsToHand(FName SocketName, FVector HandLocation)
 {
 	TArray<FHitResult> OutHits;
@@ -423,7 +506,7 @@ void AVRUnitBase::AttachActorsToHand(FName SocketName, FVector HandLocation)
 			}
 		}
 	}
-}
+}*/
 
 // Example Blueprint-callable function to attach actors to left and right hand sockets
 
@@ -544,11 +627,15 @@ void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 	VSpeed = VDevice->GetMovementSpeed();
 	VCrouch = (VDevice->GetPlayerHeight()-VCrouchPosition)*VCrouchMultiplier+VCrouchOffset;
 	
-	if(!VRotationOffsetInitialised)
+	if(!VInitialised)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("->Rotation Offset Initialised<-"));
 		VRotationOffset = HMDRotation.Yaw-VDevice->GetPlayerOrientation()* 360.0f;
-		VRotationOffsetInitialised = true;
+		StandingZ = VCrouch+25.f;
+		KneelingZ = StandingZ/2.f;
+		VInitialised = true;
+
+		UE_LOG(LogTemp, Warning, TEXT("StandingZ: %f"), StandingZ);
 	}
 
 	VRotation =  FRotator(0.0f, (VDevice->GetPlayerOrientation() * 360.0f)+VRotationOffset, 0.0f);

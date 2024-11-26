@@ -61,4 +61,17 @@ public:
 	
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
 	float Velocity;
+	
+	
+	
+	    // Cumulative Pitch
+        UPROPERTY(BlueprintReadOnly, Category = "VR Animation")
+        float CumulativePitch = 0.f;
+    
+        // Previous Pitch to calculate delta
+        float PreviousPitch = 0.f;
+    
+        // Optional: Enable or disable cumulative tracking
+        UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+        bool EnableCumulativePitchDebug = false;
 };

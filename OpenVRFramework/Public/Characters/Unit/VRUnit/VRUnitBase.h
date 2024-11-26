@@ -28,7 +28,17 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+	// Function to reset VRotationOffsetInitialised
+	UFUNCTION()
+	void ResetVInitialised();
+
+	UFUNCTION()
+	void StartInitTimer();
+private:
+	FTimerHandle TimerHandle_ResetVRotationOffsetInitialised;
+	
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -56,8 +66,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	float StandingZ = 180.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
-	float KneelingZ = 90.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
+	float KneelingZ = StandingZ/2.f;
 
 	// Normalized Z-Position
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
@@ -222,7 +232,7 @@ public:
 	float VCrouch = 0.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Virtualizer)
-	bool VRotationOffsetInitialised = false;
+	bool VInitialised = false;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Virtualizer)
 	float VRotationOffset = 0.f;

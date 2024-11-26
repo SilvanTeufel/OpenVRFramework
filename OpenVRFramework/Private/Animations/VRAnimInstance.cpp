@@ -37,7 +37,40 @@ void UVRAnimInstance::NativeUpdateAnimation(float Deltaseconds)
 			LeftHandPosition = VRUnitBase->LeftHandLocation;
 			RightHandPosition = VRUnitBase->RightHandLocation;
 			LeftHandRotation = VRUnitBase->LeftHandRotation;
-			RightHandRotation = VRUnitBase->RightHandRotation;
+		
+	
+
+
+		
+			if (RightHandRotation.Roll != VRUnitBase->RightHandRotation.Roll)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Yaw: %f"),  VRUnitBase->RightHandRotation.Yaw);
+				//UE_LOG(LogTemp, Warning, TEXT("Yaw: %f"), RightHandRotation.Yaw);
+				UE_LOG(LogTemp, Warning, TEXT("Roll: %f"), RightHandRotation.Roll);
+			}
+			//RightHandRotation.Yaw = VRUnitBase->RightHandRotation.Yaw;
+			RightHandRotation.Roll = FMath::Clamp(VRUnitBase->RightHandRotation.Roll, -140.f, -120.f);
+			RightHandRotation.Yaw = FMath::Clamp(VRUnitBase->RightHandRotation.Yaw, 70.f, 130.f);
+			if (RightHandRotation.Roll <= 0.f)
+			{
+				RightHandRotation.Pitch = 70.f + (-1)*(VRUnitBase->RightHandRotation.Pitch-70.f);
+	
+				//RightHandRotation.Yaw = FMath::Clamp(70.f + (-1)*(VRUnitBase->RightHandRotation.Yaw-70.f), 70.f, 130.f);
+				
+			}
+			else
+			{
+				RightHandRotation.Pitch = VRUnitBase->RightHandRotation.Pitch;
+				//RightHandRotation.Yaw = FMath::Clamp(VRUnitBase->RightHandRotation.Yaw, 70.f, 130.f);
+			}
+			
+			//if (RightHandRotation.Pitch <= -360.f) RightHandRotation.Pitch = RightHandRotation.Pitch*(-1.f);
+			//UE_LOG(LogTemp, Warning, TEXT("Roll: %f"), RightHandRotation.Roll);
+			//UE_LOG(LogTemp, Warning, TEXT("Pitch: %f"), RightHandRotation.Pitch);
+			//UE_LOG(LogTemp, Warning, TEXT("Yaw: %f"), RightHandRotation.Yaw);
+			//if (RightHandRotation.Pitch < 45.f) RightHandRotation.Pitch = RightHandRotation.Pitch*(-1.f);
+			//RightHandRotation.Pitch = RightHandRotation.Pitch-45.f;
+			//UE_LOG(LogTemp, Warning, TEXT("2 RightHandRotation.Pitch: %f"), RightHandRotation.Pitch);
 			Crouch = VRUnitBase->CrouchedNormedZ;
 			Velocity = VRUnitBase->NormedVelocity;
 			VRotation = VRUnitBase->VRotation;
