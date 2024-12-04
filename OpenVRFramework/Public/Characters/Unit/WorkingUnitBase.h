@@ -20,24 +20,44 @@ class OPENVRFRAMEWORK_API AWorkingUnitBase : public AAbilityUnit
 	
 public:
 	virtual void BeginPlay() override;
+
+	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Worker)
+	UFUNCTION(NetMulticast, Reliable, BlueprintCallable, Category=Worker)
+	void SpawnWorkArea(TSubclassOf<AWorkArea> WorkAreaClass, AWaypoint* Waypoint);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category=Worker)
+	void ServerSpawnWorkArea(TSubclassOf<AWorkArea> WorkAreaClass, AWaypoint* Waypoint, FVector HitLocation);
+
+	UFUNCTION(BlueprintCallable, Category=Worker)
+	void SpawnWorkAreaReplicated(TSubclassOf<AWorkArea> WorkAreaClass, AWaypoint* Waypoint, bool IsPaid = false);
+	
+	UFUNCTION(Client, Reliable)
+	void ClientReceiveWorkArea(AWorkArea* ClientArea);
+	
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = Worker)
 	class AWorkArea* ResourcePlace;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Worker)
-	class AWorkArea* Base;
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = Worker)
+	class ABuildingBase* Base;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Worker)
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = Worker)
 	class AWorkArea* BuildArea;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Worker)
 	AWorkResource* WorkResource;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	EResourceType ExtractingWorkResourceType = EResourceType::Primary;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Worker)
 	float ResourceExtractionTime = 2.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Worker)
+	bool IsWorker = false;
+
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
+	AWorkArea* CurrentDraggedWorkArea;
 	
 };
 

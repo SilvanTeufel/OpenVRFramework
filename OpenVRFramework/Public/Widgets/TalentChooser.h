@@ -11,29 +11,43 @@
 UCLASS()
 class OPENVRFRAMEWORK_API UTalentChooser : public UUserWidget
 {
-	GENERATED_BODY()
-    
-public:
-	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+		GENERATED_BODY()
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+private:
+	// Interval in seconds for how often to update the resource display
+	const float UpdateInterval = 0.5f;
+
+	FTimerHandle UpdateTimerHandle;
+
+public:
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
+	void StartUpdateTimer();
+
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
+	void StopTimer();
+	//virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
+	void UpdateWidget();
+	
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void UpdateProgressBars();
 	
 	TArray<FGameplayAttributeData*> Attributes;
 
 	// Function to initialize the Attributes array
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void InitializeAttributes();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	TArray<FString> AttributeNames = {"Stamina", "Attack Power", "Willpower", "Haste", "Armor", "MagicResistance"};
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	ALevelUnit* GetOwnerActor() {
 		return OwnerUnitBase;
 	}
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	ALevelUnit* OwnerUnitBase;
 
 	// Dynamic arrays for UI elements
@@ -47,16 +61,16 @@ public:
 	TArray<class UTextBlock*> ClassNames;
 
 	// Functions to dynamically create UI elements
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void UpdateExperience();
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void UpdateLevelAndTalents();
 	
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void CreateClassUIElements();
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void InitializeLevelAndTalentUI();
 
 	UPROPERTY(meta = (BindWidget))
@@ -74,13 +88,13 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	class UButton*  ResetTalentsButton;
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void HandleTalentButtonClicked(int32 ButtonIndex);
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void OnLevelUpClicked();
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void OnResetTalentsClicked();
 	
 public:

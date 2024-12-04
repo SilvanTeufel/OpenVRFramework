@@ -17,10 +17,10 @@ struct FTaggedInputAction
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditDefaultsOnly, meta = (DisplayName = "InputAction", Keywords = "OpenVRFramework InputAction"), Category = OpenVRFramework)
+	UPROPERTY(EditDefaultsOnly, meta = (DisplayName = "InputAction", Keywords = "TopDownRTSCamLib InputAction"), Category = TopDownRTSCamLib)
 	const UInputAction* InputAction = nullptr;
 	
-	UPROPERTY(EditDefaultsOnly, meta = (DisplayName = "InputTag", Keywords = "OpenVRFramework InputTag"), Category = OpenVRFramework)
+	UPROPERTY(EditDefaultsOnly, meta = (DisplayName = "InputTag", Keywords = "TopDownRTSCamLib InputTag"), Category = TopDownRTSCamLib)
 	FGameplayTag InputTag;
 };
 
@@ -38,6 +38,6 @@ public:
 
 public:
 	// List of input actions used by the owner. These input actions are mapped to a gameplay tag and must be manually bound.
-	UPROPERTY(EditDefaultsOnly, meta = (DisplayName = "TaggedInputActions", Keywords = "OpenVRFramework TaggedInputActions"), Category = OpenVRFramework)
+	UPROPERTY(EditDefaultsOnly, meta = (DisplayName = "TaggedInputActions", Keywords = "TopDownRTSCamLib TaggedInputActions"), Category = TopDownRTSCamLib)
 	TArray<FTaggedInputAction> TaggedInputActions;
 };

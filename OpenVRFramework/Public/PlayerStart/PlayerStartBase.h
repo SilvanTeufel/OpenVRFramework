@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Actors/Waypoint.h"
 #include "GameFramework/PlayerStart.h"
 #include "PlayerStartBase.generated.h"
 
@@ -18,4 +19,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= OpenVRFramework)
 	int SelectableTeamId = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
+	AWaypoint* DefaultWaypoint;
 };

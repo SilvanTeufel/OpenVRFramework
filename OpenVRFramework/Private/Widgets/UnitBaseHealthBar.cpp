@@ -5,28 +5,8 @@
 #include <Components/ProgressBar.h>
 #include <Components/TextBlock.h>
 
-void UUnitBaseHealthBar::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
-{
-	Super::NativeTick(MyGeometry, InDeltaTime);
+#include "Controller/PlayerController/ControllerBase.h"
 
-	if (!OwnerCharacter)
-		return;
-
-	// Update Health values
-	HealthBar->SetPercent(OwnerCharacter->Attributes->GetHealth() / OwnerCharacter->Attributes->GetMaxHealth());
-	FNumberFormattingOptions Opts;
-	Opts.SetMaximumFractionalDigits(0);
-	CurrentHealthLabel->SetText(FText::AsNumber(OwnerCharacter->Attributes->GetHealth(), &Opts));
-	MaxHealthLabel->SetText(FText::AsNumber(OwnerCharacter->Attributes->GetMaxHealth(), &Opts));
-	
-	// Update Shield values
-	float CurrentShieldValue = OwnerCharacter->Attributes->GetShield();
-	ShieldBar->SetPercent(CurrentShieldValue / OwnerCharacter->Attributes->GetMaxShield());
-	CurrentShieldLabel->SetText(FText::AsNumber(CurrentShieldValue, &Opts));
-	MaxShieldLabel->SetText(FText::AsNumber(OwnerCharacter->Attributes->GetMaxShield(), &Opts));
-	CharacterLevel->SetText(FText::AsNumber(OwnerCharacter->LevelData.CharacterLevel, &Opts));
-	UpdateExperience();
-}
 
 void UUnitBaseHealthBar::UpdateExperience()
 {
@@ -43,4 +23,39 @@ void UUnitBaseHealthBar::UpdateExperience()
 			ExperienceProgressBar->SetPercent(Z / N);
 		}
 	}
+}
+
+void UUnitBaseHealthBar::ResetCollapseTimer(float VisibleTime) {
+	if (GetWorld() && !HideWidget) {
+		SetVisibility(ESlateVisibility::Visible);
+		GetWorld()->GetTimerManager().ClearTimer(CollapseTimerHandle);
+		GetWorld()->GetTimerManager().SetTimer(CollapseTimerHandle, this, &UUnitBaseHealthBar::CollapseWidget, VisibleTime, false);
+	}
+}
+
+void UUnitBaseHealthBar::CollapseWidget() {
+	if(!HideWidget)
+	{
+		SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UUnitBaseHealthBar::UpdateWidget()
+{
+	if (!OwnerCharacter)
+		return;
+	// Update Health values
+	HealthBar->SetPercent(OwnerCharacter->Attributes->GetHealth() / OwnerCharacter->Attributes->GetMaxHealth());
+	FNumberFormattingOptions Opts;
+	Opts.SetMaximumFractionalDigits(0);
+	CurrentHealthLabel->SetText(FText::AsNumber(OwnerCharacter->Attributes->GetHealth(), &Opts));
+	MaxHealthLabel->SetText(FText::AsNumber(OwnerCharacter->Attributes->GetMaxHealth(), &Opts));
+	
+	// Update Shield values
+	float CurrentShieldValue = OwnerCharacter->Attributes->GetShield();
+	ShieldBar->SetPercent(CurrentShieldValue / OwnerCharacter->Attributes->GetMaxShield());
+	CurrentShieldLabel->SetText(FText::AsNumber(CurrentShieldValue, &Opts));
+	MaxShieldLabel->SetText(FText::AsNumber(OwnerCharacter->Attributes->GetMaxShield(), &Opts));
+	CharacterLevel->SetText(FText::AsNumber(OwnerCharacter->LevelData.CharacterLevel, &Opts));
+	UpdateExperience();
 }

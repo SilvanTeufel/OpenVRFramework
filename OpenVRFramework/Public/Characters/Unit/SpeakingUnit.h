@@ -33,31 +33,31 @@ public:
 	void SetSpeechWidgetLocation(FVector NewLocation);
 public:
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "SpeechMarkerWidgetComp", Keywords = "OpenVRFramework SpeechMarkerWidgetComp"), Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "SpeechMarkerWidgetComp", Keywords = "RTSUnitTemplate SpeechMarkerWidgetComp"), Category = RTSUnitTemplate)
 	class UWidgetComponent* SpeechMarkerWidgetComp;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "SpeechBubbleWidgetComp", Keywords = "OpenVRFramework SpeechBubbleWidgetComp"), Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "SpeechBubbleWidgetComp", Keywords = "RTSUnitTemplate SpeechBubbleWidgetComp"), Category = RTSUnitTemplate)
 	class UWidgetComponent* SpeechBubbleWidgetComp;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "SpeechBubbleWidgetCompLocation", Keywords = "OpenVRFramework SpeechBubbleWidgetCompLocation"), Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "SpeechBubbleWidgetCompLocation", Keywords = "RTSUnitTemplate SpeechBubbleWidgetCompLocation"), Category = RTSUnitTemplate)
 	FVector SpeechBubbleWidgetCompLocation = FVector (0.f, 0.f, 220.f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "SpeechBubble", Keywords = "OpenVRFramework SpeechBubble"), Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "SpeechBubble", Keywords = "RTSUnitTemplate SpeechBubble"), Category = RTSUnitTemplate)
 	USpeechBubble* SpeechBubble;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "LockCamOnUnit", Keywords = "OpenVRFramework LockCamOnUnit"), Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "LockCamOnUnit", Keywords = "RTSUnitTemplate LockCamOnUnit"), Category = RTSUnitTemplate)
 	bool LockCamOnUnit = false;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "SpeakZoomPosition", Keywords = "OpenVRFramework SpeakZoomPosition"), Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "SpeakZoomPosition", Keywords = "RTSUnitTemplate SpeakZoomPosition"), Category = RTSUnitTemplate)
 	float SpeakZoomPosition = 500.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "SpeechVolume", Keywords = "OpenVRFramework SpeechVolume"), Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "SpeechVolume", Keywords = "RTSUnitTemplate SpeechVolume"), Category = RTSUnitTemplate)
 	float SpeechVolume = 1.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "BackgroundVolume", Keywords = "OpenVRFramework BackgroundVolume"), Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "BackgroundVolume", Keywords = "RTSUnitTemplate BackgroundVolume"), Category = RTSUnitTemplate)
 	float BackgroundVolume = 0.25f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "MinSpeakDistance", Keywords = "OpenVRFramework MinSpeakDistance"), Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "MinSpeakDistance", Keywords = "RTSUnitTemplate MinSpeakDistance"), Category = RTSUnitTemplate)
 	float MinSpeakDistance = 500.f;
 	
 	int Text_Id = 1;

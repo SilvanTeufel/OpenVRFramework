@@ -7,8 +7,8 @@
 #include "EngineUtils.h" // For TActorIterator
 #include "Actors/WorkArea.h"
 #include "Characters/Unit/BuildingBase.h"
-#include "Controller/BuildingControllerBase.h"
-#include "Controller/WorkerUnitControllerBase.h"
+#include "Controller/AIController/BuildingControllerBase.h"
+#include "Controller/AIController/WorkerUnitControllerBase.h"
 #include "GameStates/ResourceGameState.h"
 #include "Net/UnrealNetwork.h"
 
@@ -28,7 +28,7 @@ void AResourceGameMode::BeginPlay()
 	// Initialize resources for the game
 	InitializeResources(NumberOfTeams);
 	GatherWorkAreas();
-
+	//GatherBases();
 	AResourceGameState* RGState = GetGameState<AResourceGameState>();
 	if (RGState)
 	{
@@ -54,6 +54,32 @@ void AResourceGameMode::InitializeResources(int32 InNumberOfTeams)
 		EResourceType ResourceType = static_cast<EResourceType>(ResourceTypeIndex);
 		TeamResources.Add(FResourceArray(ResourceType, NumberOfTeams));
 	}
+}
+void AResourceGameMode::GatherBases()
+{
+	for (TActorIterator<ABuildingBase> It(GetWorld()); It; ++It)
+	{
+		ABuildingBase* BuildingBase = *It;
+		if (!BuildingBase) continue;
+
+		if(BuildingBase->IsBase)
+		{
+			WorkAreaGroups.BaseAreas.Add(BuildingBase);
+		}
+	}
+
+}
+
+void AResourceGameMode::AddBaseToGroup(ABuildingBase* BuildingBase)
+{
+	if(BuildingBase && BuildingBase->IsBase && BuildingBase->GetUnitState() != UnitData::Dead)
+		WorkAreaGroups.BaseAreas.Add(BuildingBase);
+}
+
+void AResourceGameMode::RemoveBaseFromGroup(ABuildingBase* BuildingBase)
+{
+		if(BuildingBase && BuildingBase->IsBase && BuildingBase->GetUnitState() == UnitData::Dead)
+			WorkAreaGroups.BaseAreas.Remove(BuildingBase);
 }
 
 void AResourceGameMode::GatherWorkAreas()
@@ -83,9 +109,9 @@ void AResourceGameMode::GatherWorkAreas()
 		case WorkAreaData::Legendary:
 			WorkAreaGroups.LegendaryAreas.Add(WorkArea);
 			break;
-		case WorkAreaData::Base:
+		/*case WorkAreaData::Base:
 			WorkAreaGroups.BaseAreas.Add(WorkArea);
-			break;
+			break;*/
 		case WorkAreaData::BuildArea:
 			WorkAreaGroups.BuildAreas.Add(WorkArea);
 			break;
@@ -121,7 +147,7 @@ void AResourceGameMode::ModifyResource_Implementation(EResourceType ResourceType
 bool AResourceGameMode::CanAffordConstruction(const FBuildingCost& ConstructionCost, int32 TeamId) const
 {
 
-	if (TeamId < 0 || TeamId >= NumberOfTeams)
+	if (TeamResources.Num() == 0 || TeamId < 0 || TeamId >= NumberOfTeams)
 		return false;
 
 	// Initialize a map to store the total costs for easy comparison
@@ -171,7 +197,7 @@ void AResourceGameMode::AssignWorkAreasToWorkers()
 		if (!Worker) continue;
 
 		// Assign the closest base
-		Worker->Base = GetClosestWorkArea(Worker, WorkAreaGroups.BaseAreas);
+		Worker->Base = GetClosestBaseFromArray(Worker, WorkAreaGroups.BaseAreas);
 
 		// Assign one of the five closest resource places randomly
 		TArray<AWorkArea*> WorkPlaces = GetFiveClosestResourcePlaces(Worker);
@@ -188,7 +214,7 @@ void AResourceGameMode::AssignWorkAreasToWorker(AWorkingUnitBase* Worker)
 	if (!Worker) return;
 
 	// Assign the closest base
-	Worker->Base = GetClosestWorkArea(Worker, WorkAreaGroups.BaseAreas);
+	Worker->Base = GetClosestBaseFromArray(Worker, WorkAreaGroups.BaseAreas);
 
 	// Assign one of the five closest resource places randomly
 	TArray<AWorkArea*> WorkPlaces = GetFiveClosestResourcePlaces(Worker);
@@ -196,6 +222,24 @@ void AResourceGameMode::AssignWorkAreasToWorker(AWorkingUnitBase* Worker)
 	//AddCurrentWorkersForResourceType(Worker->TeamId, ConvertToResourceType(WorkPlace->Type), +1.0f);
 	Worker->ResourcePlace = WorkPlace;
 	//SetAllCurrentWorkers(Worker->TeamId);
+}
+
+ABuildingBase* AResourceGameMode::GetClosestBaseFromArray(AWorkingUnitBase* Worker, const TArray<ABuildingBase*>& Bases)
+{
+	ABuildingBase* ClosestBase = nullptr;
+	float MinDistanceSquared = FLT_MAX;
+
+	for (ABuildingBase* Base : Bases)
+	{
+		float DistanceSquared = (Base->GetActorLocation() - Worker->GetActorLocation()).SizeSquared();
+		if (DistanceSquared < MinDistanceSquared)
+		{
+			MinDistanceSquared = DistanceSquared;
+			ClosestBase = Base;
+		}
+	}
+
+	return ClosestBase;
 }
 
 AWorkArea* AResourceGameMode::GetClosestWorkArea(AWorkingUnitBase* Worker, const TArray<AWorkArea*>& WorkAreas)
@@ -255,7 +299,7 @@ AWorkArea* AResourceGameMode::GetRandomClosestWorkArea(const TArray<AWorkArea*>&
 
 	return nullptr;
 }
-
+/*
 TArray<AWorkArea*> AResourceGameMode::GetClosestBase(AWorkingUnitBase* Worker)
 {
 	TArray<AWorkArea*> AllAreas;
@@ -278,7 +322,7 @@ TArray<AWorkArea*> AResourceGameMode::GetClosestBase(AWorkingUnitBase* Worker)
 	}
 
 	return ClosestAreas;
-}
+}*/
 
 TArray<AWorkArea*> AResourceGameMode::GetClosestBuildPlaces(AWorkingUnitBase* Worker)
 {
@@ -286,6 +330,9 @@ TArray<AWorkArea*> AResourceGameMode::GetClosestBuildPlaces(AWorkingUnitBase* Wo
 	// Combine all resource areas into a single array for simplicity
 	AllAreas.Append(WorkAreaGroups.BuildAreas);
 	// Exclude BaseAreas and BuildAreas if they are not considered resource places
+
+	// Remove null pointers from AllAreas
+	AllAreas.RemoveAll([](AWorkArea* Area) { return Area == nullptr; });
 
 	// Sort all areas by distance to the worker
 	AllAreas.Sort([Worker](const AWorkArea& AreaA, const AWorkArea& AreaB) {

@@ -11,6 +11,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "CVirt.h"
 using namespace CybSDK;
+#include "Actors/MeleeWeapon.h"
 #include "VRUnitBase.generated.h"
 
 /**
@@ -36,6 +37,9 @@ protected:
 
 	UFUNCTION()
 	void StartInitTimer();
+
+	UFUNCTION()
+	void InitHeight();
 private:
 	FTimerHandle TimerHandle_ResetVRotationOffsetInitialised;
 	
@@ -216,6 +220,9 @@ public:
 
 	UFUNCTION(BlueprintCallable , Category = Virtualizer)
 	void HandleHapticData(int32 selection, int32 value);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Virtualizer)
+	bool StandardInitialised = false;
 	
 	VirtDevice* VDevice;
 	

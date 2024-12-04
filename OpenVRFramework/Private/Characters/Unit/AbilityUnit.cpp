@@ -198,6 +198,9 @@ void AAbilityUnit::GetAbilitiesArrays()
 	}
 }
 
+
+
+
 void AAbilityUnit::SetUnitState(TEnumAsByte<UnitData::EState> NewUnitState)
 {
 	UnitState = NewUnitState;

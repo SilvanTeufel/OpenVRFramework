@@ -16,16 +16,16 @@ class OPENVRFRAMEWORK_API AHealingUnit : public AUnitBase
 
 public:
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "HealActorSpawnOffset", Keywords = "OpenVRFramework HealActorSpawnOffset"), Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "HealActorSpawnOffset", Keywords = "RTSUnitTemplate HealActorSpawnOffset"), Category = RTSUnitTemplate)
 	FVector HealActorSpawnOffset = FVector(0.f,0.f,0.f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "HealActorScale", Keywords = "OpenVRFramework HealActorScale"), Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "HealActorScale", Keywords = "RTSUnitTemplate HealActorScale"), Category = RTSUnitTemplate)
 	FVector HealActorScale = FVector(3.f,3.f,3.f);
 	
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "SpawnHealActor", Keywords = "OpenVRFramework SpawnHealActor"), Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "SpawnHealActor", Keywords = "RTSUnitTemplate SpawnHealActor"), Category = RTSUnitTemplate)
 	void SpawnHealActor(AActor* Target);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "SetNextUnitToChaseHeal", Keywords = "OpenVRFramework SetNextUnitToChaseHeal"), Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "SetNextUnitToChaseHeal", Keywords = "RTSUnitTemplate SetNextUnitToChaseHeal"), Category = RTSUnitTemplate)
 	bool SetNextUnitToChaseHeal();
 
 	UFUNCTION(Server, Reliable, WithValidation)
@@ -34,10 +34,10 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void MultiCastStartHealingEvent();
 	
-	UFUNCTION(BlueprintImplementableEvent, Category = OpenVRFramework)
+	UFUNCTION(BlueprintImplementableEvent, Category="RTSUnitTemplate")
 	void StartHealingEvent();
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "HealingActorBaseClass", Keywords = "TopDownRTSTemplate HealingActorBaseClass"), Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "HealingActorBaseClass", Keywords = "TopDownRTSTemplate HealingActorBaseClass"), Category = RTSUnitTemplate)
 	TSubclassOf<class AHealingActor> HealingActorBaseClass;
 
 	float HealTime = 0.5f;

@@ -3,7 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "GASUnit.h"
-#include "LevelUnit.h"
+#include "PerformanceUnit.h"
 #include "GameFramework/Character.h"
 #include "Core/UnitData.h"
 #include "Actors/DijkstraCenter.h"
@@ -11,7 +11,7 @@
 #include "PathSeekerBase.generated.h"
 
 UCLASS()
-class OPENVRFRAMEWORK_API APathSeekerBase : public ALevelUnit
+class OPENVRFRAMEWORK_API APathSeekerBase : public APerformanceUnit
 {
 	GENERATED_BODY()
 
@@ -23,22 +23,22 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	FVector DijkstraStartPoint;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	FVector  DijkstraEndPoint;
 
 	UPROPERTY()
 	FDijkstraMatrix Next_DijkstraPMatrixes;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	bool  DijkstraSetPath = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	bool  FollowPath = false;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	bool EnteredNoPathFindingArea = false;
 	
 };

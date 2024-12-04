@@ -36,43 +36,26 @@ void UVRAnimInstance::NativeUpdateAnimation(float Deltaseconds)
 			IsVirtualizerEnabled = VRUnitBase->EnableVirtualizer;
 			LeftHandPosition = VRUnitBase->LeftHandLocation;
 			RightHandPosition = VRUnitBase->RightHandLocation;
-			LeftHandRotation = VRUnitBase->LeftHandRotation;
+			
 		
 	
 
 
-		
-			if (RightHandRotation.Yaw != VRUnitBase->RightHandRotation.Yaw)
+		/*
+			if (LeftHandRotation.Yaw != VRUnitBase->LeftHandRotation.Yaw)
 			{
 				//UE_LOG(LogTemp, Warning, TEXT("Yaw: %f"),  VRUnitBase->RightHandRotation.Yaw);
 				//UE_LOG(LogTemp, Warning, TEXT("Yaw: %f"), RightHandRotation.Yaw);
-				UE_LOG(LogTemp, Warning, TEXT("Yaw: %f"), VRUnitBase->RightHandRotation.Yaw);
+				UE_LOG(LogTemp, Warning, TEXT("Yaw: %f"), VRUnitBase->LeftHandRotation.Yaw);
 				if (GEngine)
 				{
-					FString DebugMessage = FString::Printf(TEXT("Yaw: %f // %f"), RightHandRotation.Yaw, VRUnitBase->RightHandRotation.Yaw);
+					FString DebugMessage = FString::Printf(TEXT("Pitch: %f // %f"), LeftHandRotation.Yaw, VRUnitBase->LeftHandRotation.Yaw);
 					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, DebugMessage);
 				}
-			}
-			//RightHandRotation.Yaw = VRUnitBase->RightHandRotation.Yaw;
-			//RightHandRotation.Roll = FMath::Clamp(VRUnitBase->RightHandRotation.Roll, -140.f, -120.f);
-			RightHandRotation.Roll = VRUnitBase->RightHandRotation.Roll;
-			//RightHandRotation.Yaw = VRUnitBase->RightHandRotation.Yaw;
-		
-			// Clamp the normalized value between 0 and 1
-			RightHandRotation.Yaw = VRUnitBase->RightHandRotation.Yaw;
+			}*/
+			LeftHandRotation = VRUnitBase->LeftHandRotation;
+			RightHandRotation = VRUnitBase->RightHandRotation;
 
-			// Now you can use NormalizedYaw in your application
-		
-	
-			RightHandRotation.Pitch = VRUnitBase->RightHandRotation.Pitch;
-
-			//if (RightHandRotation.Pitch <= -360.f) RightHandRotation.Pitch = RightHandRotation.Pitch*(-1.f);
-			//UE_LOG(LogTemp, Warning, TEXT("Roll: %f"), RightHandRotation.Roll);
-			//UE_LOG(LogTemp, Warning, TEXT("Pitch: %f"), RightHandRotation.Pitch);
-			//UE_LOG(LogTemp, Warning, TEXT("Yaw: %f"), RightHandRotation.Yaw);
-			//if (RightHandRotation.Pitch < 45.f) RightHandRotation.Pitch = RightHandRotation.Pitch*(-1.f);
-			//RightHandRotation.Pitch = RightHandRotation.Pitch-45.f;
-			//UE_LOG(LogTemp, Warning, TEXT("2 RightHandRotation.Pitch: %f"), RightHandRotation.Pitch);
 			Crouch = VRUnitBase->CrouchedNormedZ;
 			Velocity = VRUnitBase->NormedVelocity;
 			VRotation = VRUnitBase->VRotation;

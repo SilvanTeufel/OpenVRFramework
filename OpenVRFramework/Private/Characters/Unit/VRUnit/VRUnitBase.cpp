@@ -97,11 +97,23 @@ void AVRUnitBase::StartInitTimer()
 void AVRUnitBase::ResetVInitialised()
 {
 	VInitialised = false;
-
+	StandardInitialised = false;
 	// Optionally clear the timer if you no longer need it
 	GetWorldTimerManager().ClearTimer(TimerHandle_ResetVRotationOffsetInitialised);
 }
 
+void AVRUnitBase::InitHeight()
+{
+	if(!StandardInitialised && !EnableVirtualizer)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("->Rotation Offset Initialised<-"));
+		VRotationOffset = HMDRotation.Yaw-VDevice->GetPlayerOrientation()* 360.0f;
+		StandingZ = HMDPosition.Z; //+25.f;
+		KneelingZ = StandingZ/2.f;
+		StandardInitialised = true;
+		UE_LOG(LogTemp, Warning, TEXT("StandingZ: %f"), StandingZ);
+	}
+}
 
 // Called every frame
 void AVRUnitBase::Tick(float DeltaTime)
@@ -113,6 +125,8 @@ void AVRUnitBase::Tick(float DeltaTime)
 		MoveWithVirtualizer(VSpeed, VRotation.Yaw);
 		GetVirtualizerData();
 	}
+
+	InitHeight();
 	
 	SetRotationAndPosition();
 	
@@ -179,7 +193,7 @@ void AVRUnitBase::CalculateHandLocation(float DeltaTime)
 	{
 		FVector CurrentLeftHandPosition = LeftMotionController->GetComponentLocation();
 		FVector VHeadToLHand = CurrentLeftHandPosition-HMDPosition;
-		LeftHandLocation = Camera->GetComponentLocation() + VHeadToLHand - FVector(ALocation.X, ALocation.Y, -15.f); // + ForwardDirection*25.f;
+		LeftHandLocation = Camera->GetComponentLocation() + VHeadToLHand - FVector(ALocation.X, ALocation.Y, -15.f) + ForwardDirection*5.f;
 		if(EnableDebug) DrawDebugSphere(GetWorld(), LeftHandLocation, 5.0f, 12, FColor::Red, false, -1.0f, 0, 1.0f);
 
 	}
@@ -189,7 +203,7 @@ void AVRUnitBase::CalculateHandLocation(float DeltaTime)
 	{
 		FVector CurrentRightHandPosition = RightMotionController->GetComponentLocation();
 		FVector VHeadToRHand = CurrentRightHandPosition-HMDPosition;
-		RightHandLocation = Camera->GetComponentLocation() + VHeadToRHand - FVector(ALocation.X, ALocation.Y, -15.f); // + ForwardDirection*25.f;
+		RightHandLocation = Camera->GetComponentLocation() + VHeadToRHand - FVector(ALocation.X, ALocation.Y, -15.f) + ForwardDirection*5.f;
 		if(EnableDebug) DrawDebugSphere(GetWorld(), RightHandLocation, 5.0f, 12, FColor::Blue, false, -1.0f, 0, 1.0f);
 	}
 
@@ -465,6 +479,18 @@ void AVRUnitBase::AttachActorsToHand(FName SocketName, FVector HandLocation)
 				// Attach the actor to the socket
 				HitActor->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, SocketName);
 
+				// Attempt to cast HitActor to AMeleeWeapon
+				AMeleeWeapon* MeleeWeapon = Cast<AMeleeWeapon>(HitActor);
+				if (MeleeWeapon)
+				{
+					// Call Init on the weapon and pass 'this' as the NewCarrier
+					MeleeWeapon->Init(this, TeamId);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning, TEXT("HitActor is not of type AMeleeWeapon."));
+				}
+				
 				/*
 				// Get the forward vector of the socket
 				FVector SocketForwardVector = GetMesh()->GetSocketTransform(SocketName).GetRotation().GetForwardVector();

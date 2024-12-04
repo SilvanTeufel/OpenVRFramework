@@ -1,5 +1,5 @@
 // Copyright 2022 Silvan Teufel / Teufel-Engineering.com All Rights Reserved.
-#include "Controller/CameraControllerBase.h"
+#include "Controller/PlayerController/CameraControllerBase.h"
 #include "AIController.h"
 #include "Actors/AutoCamWaypoint.h"
 #include "Engine/GameViewportClient.h" // Include the header for UGameViewportClient
@@ -21,10 +21,11 @@ void ACameraControllerBase::BeginPlay()
 	HUDBase = Cast<APathProviderHUD>(GetHUD());
 	CameraBase = Cast<ACameraBase>(GetPawn());
 
-	if(CameraBase)
-	GetViewPortScreenSizes(CameraBase->GetViewPortScreenSizesState);
-
+	if(CameraBase) GetViewPortScreenSizes(CameraBase->GetViewPortScreenSizesState);
+	
 	GetAutoCamWaypoints();
+
+
 }
 
 void ACameraControllerBase::SetupInputComponent()
@@ -35,9 +36,11 @@ void ACameraControllerBase::SetupInputComponent()
 void ACameraControllerBase::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
 	CheckSpeakingUnits();
 	RotateCam(DeltaSeconds);
 	CameraBaseMachine(DeltaSeconds);
+
 }
 
 void ACameraControllerBase::MoveCamToLocation(ACameraBase* Camera, const FVector& DestinationLocation)
@@ -59,12 +62,15 @@ void ACameraControllerBase::MoveCamToLocation(ACameraBase* Camera, const FVector
 
 bool ACameraControllerBase::CheckSpeakingUnits()
 {
-	if(HUDBase)
-	for (int32 i = 0; i < HUDBase->SpeakingUnits.Num(); i++)
+	ARTSGameModeBase* GameMode = Cast<ARTSGameModeBase>(GetWorld()->GetAuthGameMode());
+
+	
+	if(GameMode)
+	for (int32 i = 0; i < GameMode->SpeakingUnits.Num(); i++)
 	{
-		if(HUDBase->SpeakingUnits[i]->LockCamOnUnit)
+		if(GameMode->SpeakingUnits[i]->LockCamOnUnit)
 		{
-			SpeakingUnit = HUDBase->SpeakingUnits[i];
+			SpeakingUnit = GameMode->SpeakingUnits[i];
 			SetCameraState(CameraData::LockOnSpeaking);
 			return true;
 		}
@@ -828,7 +834,7 @@ void ACameraControllerBase::LockCamToSpecificUnit(AUnitBase* SUnit)
 		CameraBase->LockOnUnit(Unit);
 
 		CamIsRotatingLeft = true;
-		CameraBase->RotateCamLeft(CameraBase->AddCamRotation/100);
+		CameraBase->RotateCamLeft(CameraBase->AddCamRotationSpeaking/100);
 		
 		if(CamIsZoomingInState)
 		{

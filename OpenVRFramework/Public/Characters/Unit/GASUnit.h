@@ -11,6 +11,7 @@
 #include "SpawnerUnit.h"
 #include "GAS/AbilitySystemComponentBase.h"
 #include "GAS/AttributeSetBase.h"
+#include "GAS/GameplayAbilityBase.h"
 #include "GASUnit.generated.h"
 
 
@@ -22,10 +23,10 @@ class OPENVRFRAMEWORK_API AGASUnit : public ASpawnerUnit, public IAbilitySystemI
 public:
 	//AGASUnit();
 	
-	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = OpenVRFramework, meta=(AllowPrivateAccess=true))
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category=RTSUnitTemplate, meta=(AllowPrivateAccess=true))
 	class UAbilitySystemComponentBase* AbilitySystemComponent;
 	
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = OpenVRFramework, meta=(AllowPrivateAccess=true))
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category=RTSUnitTemplate, meta=(AllowPrivateAccess=true))
 	class UAttributeSetBase* Attributes;
 	
 //protected:
@@ -39,26 +40,43 @@ public:
 	
 	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category=RTSUnitTemplate)
 	virtual void InitializeAttributes();
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category=RTSUnitTemplate)
+	void CreateOwnerShip();
+	
+	UFUNCTION(BlueprintCallable, Category=RTSUnitTemplate)
 	virtual void GiveAbilities();
 
 	virtual void PossessedBy(AController* NewController) override;
 	
 	virtual void OnRep_PlayerState() override;
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RTSUnitTemplate)
+	bool ToggleUnitDetection = false;
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, meta = (DisplayName = "CreateCameraComp", Keywords = "RTSUnitTemplate CreateCameraComp"), Category = RTSUnitTemplate)
+	void SetToggleUnitDetection(bool ToggleTo);
+
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
+	bool GetToggleUnitDetection();
+	
+	UFUNCTION(BlueprintCallable, Category=RTSUnitTemplate)
 	void ActivateAbilityByInputID(EGASAbilityInputID InputID, const TArray<TSubclassOf<UGameplayAbilityBase>>& AbilitiesArray);
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	//UFUNCTION(Server, Reliable, BlueprintCallable, Category = RTSUnitTemplate)
+	//void ServerActivateAbilityByInputID(EGASAbilityInputID InputID, const TArray<TSubclassOf<UGameplayAbilityBase>>& AbilitiesArray);
+
+
+		
+	UFUNCTION(BlueprintCallable, Category=RTSUnitTemplate)
 	TSubclassOf<UGameplayAbility> GetAbilityForInputID(EGASAbilityInputID InputID, const TArray<TSubclassOf<UGameplayAbilityBase>>& AbilitiesArray);
 	
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = OpenVRFramework)
+	UPROPERTY(Replicated,BlueprintReadWrite, EditDefaultsOnly, Category=RTSUnitTemplate)
 	TSubclassOf<class UGameplayEffect>DefaultAttributeEffect;
 
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category=Ability)
+	UPROPERTY(Replicated, BlueprintReadWrite, EditDefaultsOnly, Category=Ability)
 	TArray<TSubclassOf<class UGameplayAbilityBase>>DefaultAbilities;
 
 protected:

@@ -16,16 +16,16 @@ USTRUCT(BlueprintType)
 struct FSpawnData : public FTableRowBase
 {
 	GENERATED_USTRUCT_BODY()
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TopDownRTSTemplate)
 	int Id;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TopDownRTSTemplate)
 	TSubclassOf<APickup> PickupBlueprint;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TopDownRTSTemplate)
 	float ProbabilityArray;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TopDownRTSTemplate)
 	float MaxLifeTime;
 };
 
@@ -59,6 +59,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = Spawn)
 	bool IsSpawned = false;
 
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	int TeamId = 1;
+
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
+	int SquadId = 0;
 };

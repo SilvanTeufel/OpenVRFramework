@@ -11,17 +11,20 @@
 #include "Actors/Projectile.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Controller/AIController/BuildingControllerBase.h"
+#include "Controller/PlayerController/ControllerBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameModes/RTSGameModeBase.h"
 #include "Net/UnrealNetwork.h"
 #include "Widgets/UnitTimerWidget.h"
 
+AControllerBase* ControllerBase;
 // Sets default values
 AUnitBase::AUnitBase(const FObjectInitializer& ObjectInitializer):Super(ObjectInitializer)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
+	PrimaryActorTick.TickInterval = TickInterval; 
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
@@ -35,21 +38,28 @@ AUnitBase::AUnitBase(const FObjectInitializer& ObjectInitializer):Super(ObjectIn
 	
 	HealthWidgetComp = ObjectInitializer.CreateDefaultSubobject<UWidgetComponent>(this, TEXT("Healthbar"));
 	HealthWidgetComp->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
-
+	HealthWidgetComp->SetVisibility(true);
+	
 	SetReplicates(true);
 	GetMesh()->SetIsReplicated(true);
-
 	bReplicates = true;
 	
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponentBase>("AbilitySystemComp");
-	AbilitySystemComponent->SetIsReplicated(true);
-	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Full);
+	
+	if(ensure(AbilitySystemComponent != nullptr))
+	{
+		AbilitySystemComponent->SetIsReplicated(true);
+		AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Full);
+	}
 	
 	Attributes = CreateDefaultSubobject<UAttributeSetBase>("Attributes");
 	SelectedIconBaseClass = ASelectedIcon::StaticClass();
 
 	TimerWidgetComp = ObjectInitializer.CreateDefaultSubobject<UWidgetComponent>(this, TEXT("Timer"));
 	TimerWidgetComp->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+
+	//bCanProcessCollision = true;
+	//SetLODCount(0);
 	/*
 	if (HasAuthority())
 	{
@@ -63,12 +73,95 @@ AUnitBase::AUnitBase(const FObjectInitializer& ObjectInitializer):Super(ObjectIn
 void AUnitBase::NotifyHit(class UPrimitiveComponent* MyComp, class AActor* Other, class UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit)
 {
 	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
-    
-	AUnitBase* OtherUnit = Cast<AUnitBase>(Other);
-	if (OtherUnit)
+	
+	// If collisions can be processed, handle the logic
+	if (bCanProcessCollision)
 	{
-		// Handle collision with another AUnitBase
-		CollisionUnit = OtherUnit;
+		AUnitBase* OtherUnit = Cast<AUnitBase>(Other);
+		if (OtherUnit)
+		{
+			//CollisionManager->RegisterCollision();
+			// Handle collision with another AUnitBase
+			CollisionUnit = OtherUnit;
+			CollisionLocation = GetActorLocation();
+
+			SetCollisionCooldown();
+		}
+	}
+}
+
+
+void AUnitBase::SetCollisionCooldown()
+{
+	// Re-enable collision processing
+	bCanProcessCollision = false;
+	/*
+	UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
+	if (PrimitiveComponent)
+	{
+		PrimitiveComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+	}*/
+	GetWorld()->GetTimerManager().SetTimer(CollisionCooldownTimer, this, &AUnitBase::ResetCollisionCooldown, CollisionCooldown, false);
+}
+
+void AUnitBase::ResetCollisionCooldown()
+{
+	// Re-enable collision processing
+	/*
+	UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
+	if (PrimitiveComponent)
+	{
+		PrimitiveComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+	}*/
+	bCanProcessCollision = true;
+}
+
+void AUnitBase::CreateHealthWidgetComp()
+{
+	// Check if the HealthWidgetComp is already created
+	//if (!HealthCompCreated)
+	{
+		if (ControllerBase)
+		{
+
+			ARTSGameModeBase* RTSGameMode = Cast<ARTSGameModeBase>(GetWorld()->GetAuthGameMode());
+			
+			if (RTSGameMode && RTSGameMode->AllUnits.Num() > HideHealthBarUnitCount )
+			{
+				return;
+			}
+		}
+		
+		if (HealthWidgetComp && HealthBarWidgetClass)
+		{
+			// Attach it to the RootComponent
+			HealthWidgetComp->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+
+			// Optionally set the widget class, size, or any other properties
+			HealthWidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
+			HealthWidgetComp->SetDrawSize(FVector2D(200, 200)); // Example size, adjust as needed
+			HealthWidgetComp->SetDrawAtDesiredSize(true);
+			// Set the widget class (if you've assigned a widget class in the editor or dynamically)
+			HealthWidgetComp->SetWidgetClass(HealthBarWidgetClass);  // YourHealthBarWidgetClass should be a reference to your widget
+			HealthWidgetComp->SetPivot(FVector2d(0.5, 0.5));
+			// Activate or make the widget visible, if necessary
+			HealthWidgetComp->SetVisibility(true);
+
+			// Register the component so it gets updated
+			HealthWidgetComp->RegisterComponent();
+		
+
+
+			HealthWidgetComp->SetRelativeLocation(HealthWidgetCompLocation, false, 0, ETeleportType::None);
+			
+			UUnitBaseHealthBar* HealthBarWidget = Cast<UUnitBaseHealthBar>(HealthWidgetComp->GetUserWidgetObject());
+		
+			if (HealthBarWidget) {
+				HealthBarWidget->SetOwnerActor(this);
+				//HealthBarWidget->SetVisibility(ESlateVisibility::Collapsed);
+				HealthCompCreated = true;
+			}
+		}
 	}
 }
 
@@ -77,25 +170,11 @@ void AUnitBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
-		if (HealthWidgetComp) {
 
-			HealthWidgetComp->SetRelativeLocation(HealthWidgetCompLocation, false, 0, ETeleportType::None);
-			UUnitBaseHealthBar* Healthbar = Cast<UUnitBaseHealthBar>(HealthWidgetComp->GetUserWidgetObject());
-
-			if (Healthbar) {
-				Healthbar->SetOwnerActor(this);
-			}
-		}
-
+		
+		ControllerBase = Cast<AControllerBase>(GetWorld()->GetFirstPlayerController());
 		SetupTimerWidget();
 
-		/*
-		FRotator NewRotation = FRotator(0, -90, 0);
-		FQuat QuatRotation = FQuat(NewRotation);
-		
-		GetMesh()->SetRelativeRotation(QuatRotation, false, 0, ETeleportType::None);
-		GetMesh()->SetRelativeLocation(FVector(0, 0, -75), false, 0, ETeleportType::None);
-		*/
 
 		SpawnSelectedIcon();
 		GetCharacterMovement()->GravityScale = 1;
@@ -112,17 +191,39 @@ void AUnitBase::BeginPlay()
 		SetMeshRotationServer();
 	}
 
+	SetCollisionCooldown();
+
+	InitHealthbarOwner();
+
 }
+void AUnitBase::InitHealthbarOwner()
+{
+	UUnitBaseHealthBar* HealthBarWidget = Cast<UUnitBaseHealthBar>(HealthWidgetComp->GetUserWidgetObject());
+		
+	if (HealthBarWidget)
+	{
+		HealthBarWidget->SetOwnerActor(this);
+	}
+}
+
 
 void AUnitBase::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
-	DOREPLIFETIME(AUnitBase, HealthWidgetComp);
 	DOREPLIFETIME(AUnitBase, ToggleUnitDetection);
 	DOREPLIFETIME(AUnitBase, RunLocation);
 	DOREPLIFETIME(AUnitBase, MeshAssetPath);
 	DOREPLIFETIME(AUnitBase, MeshMaterialPath);
+	DOREPLIFETIME(AUnitBase, UnitControlTimer);
+	DOREPLIFETIME(AUnitBase, LineTraceZDistance);
+
+	DOREPLIFETIME(AUnitBase, EvadeDistance); // Added for Build
+	DOREPLIFETIME(AUnitBase, EvadeDistanceChase); // Added for Build
+	DOREPLIFETIME(AUnitBase, CastTime); // Added for Build
+	DOREPLIFETIME(AUnitBase, ReduceCastTime); // Added for Build
+	DOREPLIFETIME(AUnitBase, ReduceRootedTime); // Added for Build
+	DOREPLIFETIME(AUnitBase, UnitTags);
 }
 
 
@@ -130,7 +231,6 @@ void AUnitBase::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 void AUnitBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 // Called to bind functionality to input
@@ -245,16 +345,14 @@ void AUnitBase::SetWaypoint(AWaypoint* NewNextWaypoint)
 	NextWaypoint = NewNextWaypoint;
 }
 
-
 void AUnitBase::SetHealth_Implementation(float NewHealth)
 {
+	float OldHealth = Attributes->GetHealth();
+	
 	Attributes->SetAttributeHealth(NewHealth);
 
 	if(NewHealth <= 0.f)
 	{
-		//if(UnitIndex > 0)
-			//SaveLevelDataAndAttributes(FString::FromInt(UnitIndex));
-		
 		SetWalkSpeed(0);
 		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		SetActorEnableCollision(false);
@@ -262,6 +360,64 @@ void AUnitBase::SetHealth_Implementation(float NewHealth)
 		SetUnitState(UnitData::Dead);
 		UnitControlTimer = 0.f;
 	}
+
+	HealthbarCollapseCheck(NewHealth, OldHealth);
+}
+
+
+void AUnitBase::HealthbarCollapseCheck(float NewHealth, float OldHealth)
+{
+	ARTSGameModeBase* RTSGameMode = Cast<ARTSGameModeBase>(GetWorld()->GetAuthGameMode());
+	if((OldHealth > NewHealth || NewHealth > 0.f) && (RTSGameMode && RTSGameMode->AllUnits.Num() <= HideHealthBarUnitCount))
+	{
+		OpenHealthWidget = true;
+	}
+	GetWorld()->GetTimerManager().SetTimer(HealthWidgetTimerHandle, this, &AUnitBase::HideHealthWidget, HealthWidgetDisplayDuration, false);
+}
+
+void AUnitBase::HideHealthWidget()
+{
+	OpenHealthWidget = false;
+}
+
+
+void AUnitBase::SetShield_Implementation(float NewShield)
+{
+	const float OldShield = Attributes->GetHealth();
+	Attributes->SetAttributeShield(NewShield);
+	ShieldCollapseCheck(NewShield, OldShield);
+}
+
+void AUnitBase::ShieldCollapseCheck(float NewShield, float OldShield)
+{
+	ARTSGameModeBase* RTSGameMode = Cast<ARTSGameModeBase>(GetWorld()->GetAuthGameMode());
+	if(NewShield <= OldShield && (RTSGameMode && RTSGameMode->AllUnits.Num() <= HideHealthBarUnitCount))
+	{
+		OpenHealthWidget = true;
+	}
+
+	GetWorld()->GetTimerManager().SetTimer(HealthWidgetTimerHandle, this, &AUnitBase::HideHealthWidget, HealthWidgetDisplayDuration, false);
+}
+
+
+void AUnitBase::UpdateWidget()
+{
+
+	if(!HealthWidgetComp) return;
+	
+	UUnitBaseHealthBar* HealthBarWidget = Cast<UUnitBaseHealthBar>(HealthWidgetComp->GetUserWidgetObject());
+	
+	if (HealthBarWidget)
+	{
+		HealthBarWidget->UpdateWidget();
+	}
+}
+
+void AUnitBase::IncreaseExperience()
+{
+	LevelData.Experience++;
+		
+	UpdateWidget();
 }
 
 void AUnitBase::SetSelected()
@@ -269,6 +425,7 @@ void AUnitBase::SetSelected()
 	if(SelectedIcon)
 		SelectedIcon->IconMesh->bHiddenInGame = false;
 
+	Selected();
 }
 
 void AUnitBase::SetDeselected()
@@ -278,6 +435,8 @@ void AUnitBase::SetDeselected()
 		SelectedIcon->IconMesh->bHiddenInGame = true;
 		SelectedIcon->ChangeMaterialColour(FVector4d(5.f, 40.f, 30.f, 0.5f));
 	}
+
+	Deselected();
 }
 
 
@@ -347,8 +506,8 @@ void AUnitBase::SpawnProjectile_Implementation(AActor* Target, AActor* Attacker)
 			//MyProjectile->TargetLocation = Target->GetActorLocation();
 			MyProjectile->Init(Target, Attacker);
 			MyProjectile->Mesh->OnComponentBeginOverlap.AddDynamic(MyProjectile, &AProjectile::OnOverlapBegin);
-
-
+			
+			if(!IsOnViewport) MyProjectile->Mesh->SetVisibility(false);
 			
 		
 			UGameplayStatics::FinishSpawningActor(MyProjectile, Transform);
@@ -404,21 +563,13 @@ void AUnitBase::SpawnProjectileFromClass_Implementation(AActor* Aim, AActor* Att
 				MyProjectile->FollowTarget = FollowTarget;
 				MyProjectile->IsBouncingNext = IsBouncingNext;
 				MyProjectile->IsBouncingBack = IsBouncingBack;
-			
+
+				if(!IsOnViewport) MyProjectile->Mesh->SetVisibility(false);
+				
 				UGameplayStatics::FinishSpawningActor(MyProjectile, Transform);
 			}
 		}
 	}
-}
-
-void AUnitBase::SetToggleUnitDetection_Implementation(bool ToggleTo)
-{
-		ToggleUnitDetection = ToggleTo;
-}
-
-bool AUnitBase::GetToggleUnitDetection()
-{
-	return ToggleUnitDetection;
 }
 
 bool AUnitBase::SetNextUnitToChase()
@@ -457,12 +608,12 @@ bool AUnitBase::SetNextUnitToChase()
 }
 
 
-int AUnitBase::SpawnUnitsFromParameters(
+void AUnitBase::SpawnUnitsFromParameters(
 TSubclassOf<class AAIController> AIControllerBaseClass,
 TSubclassOf<class AUnitBase> UnitBaseClass, UMaterialInstance* Material, USkeletalMesh* CharacterMesh, FRotator HostMeshRotation, FVector Location,
 TEnumAsByte<UnitData::EState> UState,
 TEnumAsByte<UnitData::EState> UStatePlaceholder,
-int NewTeamId, AWaypoint* Waypoint, int UIndex)
+int NewTeamId, AWaypoint* Waypoint, int UnitCount, bool SummonContinuously)
 {
 	FUnitSpawnParameter SpawnParameter;
 	SpawnParameter.UnitControllerBaseClass = AIControllerBaseClass;
@@ -477,99 +628,104 @@ int NewTeamId, AWaypoint* Waypoint, int UIndex)
 
 	ARTSGameModeBase* GameMode = Cast<ARTSGameModeBase>(GetWorld()->GetAuthGameMode());
 
-	if(!GameMode) return 0;
+	if(!GameMode) return;
+
+	GameMode->HighestSquadId++;
+	for(int i = 0; i < UnitCount; i++)
+	{
+		FTransform UnitTransform;
 	
-	FTransform UnitTransform;
-	
-	UnitTransform.SetLocation(FVector(Location.X+SpawnParameter.UnitOffset.X, Location.Y+SpawnParameter.UnitOffset.Y, Location.Z+SpawnParameter.UnitOffset.Z));
+		UnitTransform.SetLocation(FVector(Location.X+SpawnParameter.UnitOffset.X, Location.Y+SpawnParameter.UnitOffset.Y, Location.Z+SpawnParameter.UnitOffset.Z));
 		
 		
-	const auto UnitBase = Cast<AUnitBase>
-		(UGameplayStatics::BeginDeferredActorSpawnFromClass
-		(this, *SpawnParameter.UnitBaseClass, UnitTransform, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn));
+		const auto UnitBase = Cast<AUnitBase>
+			(UGameplayStatics::BeginDeferredActorSpawnFromClass
+			(this, *SpawnParameter.UnitBaseClass, UnitTransform, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn));
 
 	
-	if(SpawnParameter.UnitControllerBaseClass)
-	{
-		AAIController* ControllerBase = GetWorld()->SpawnActor<AAIController>(SpawnParameter.UnitControllerBaseClass, FTransform());
-		if(!ControllerBase) return 0;
-		APawn* PawnBase = Cast<APawn>(UnitBase);
-		if(PawnBase)
+		if(SpawnParameter.UnitControllerBaseClass)
 		{
-			ControllerBase->Possess(PawnBase);
+			AAIController* UnitController = GetWorld()->SpawnActor<AAIController>(SpawnParameter.UnitControllerBaseClass, FTransform());
+			if(!UnitController) return;
+			APawn* PawnBase = Cast<APawn>(UnitBase);
+			if(PawnBase)
+			{
+				UnitController->Possess(PawnBase);
+			}
+		}
+	
+		if (UnitBase != nullptr)
+		{
+
+			if (SpawnParameter.CharacterMesh)
+			{
+				UnitBase->MeshAssetPath = SpawnParameter.CharacterMesh->GetPathName();
+			}
+		
+			if (SpawnParameter.Material)
+			{
+				UnitBase->MeshMaterialPath = SpawnParameter.Material->GetPathName();
+			}
+		
+			if(NewTeamId)
+			{
+				UnitBase->TeamId = NewTeamId;
+			}
+
+			UnitBase->ServerMeshRotation = SpawnParameter.ServerMeshRotation;
+			
+			UnitBase->OnRep_MeshAssetPath();
+			UnitBase->OnRep_MeshMaterialPath();
+
+			UnitBase->SetReplicateMovement(true);
+			SetReplicates(true);
+			UnitBase->GetMesh()->SetIsReplicated(true);
+
+			// Does this have to be replicated?
+			UnitBase->SetMeshRotationServer();
+		
+			UnitBase->UnitState = SpawnParameter.State;
+			UnitBase->UnitStatePlaceholder = SpawnParameter.StatePlaceholder;
+
+			if(UnitToChase)
+			{
+				UnitBase->UnitToChase = UnitToChase;
+				UnitBase->SetUnitState(UnitData::Chase);
+			}
+		
+			UGameplayStatics::FinishSpawningActor(
+			 Cast<AActor>(UnitBase), 
+			 UnitTransform
+			);
+
+
+			UnitBase->InitializeAttributes();
+			UnitBase->SquadId = GameMode->HighestSquadId;
+			
+			if(Waypoint)
+				UnitBase->NextWaypoint = Waypoint;
+		
+			if(SummonedUnitIndexes.Num() < i+1 || SummonContinuously)
+			{
+				int UIndex = GameMode->AddUnitIndexAndAssignToAllUnitsArray(UnitBase);
+			
+				FUnitSpawnData UnitSpawnDataSet;
+				UnitSpawnDataSet.Id = SpawnParameter.Id;
+				UnitSpawnDataSet.UnitBase = UnitBase;
+				UnitSpawnDataSet.SpawnParameter = SpawnParameter;
+				SummonedUnitsDataSet.Add(UnitSpawnDataSet);
+				SummonedUnitIndexes.Add(UIndex);
+			}
+			else if(IsSpawnedUnitDead(SummonedUnitIndexes[i]))
+			{
+				UnitBase->UnitIndex = SummonedUnitIndexes[i];
+				SetUnitBase(SummonedUnitIndexes[i], UnitBase);
+			}
+			//return UnitBase->UnitIndex;
 		}
 	}
-	
-	if (UnitBase != nullptr)
-	{
 
-		if (SpawnParameter.CharacterMesh)
-		{
-			UnitBase->MeshAssetPath = SpawnParameter.CharacterMesh->GetPathName();
-		}
-		
-		if (SpawnParameter.Material)
-		{
-			UnitBase->MeshMaterialPath = SpawnParameter.Material->GetPathName();
-		}
-		
-		if(NewTeamId)
-		{
-			UnitBase->TeamId = NewTeamId;
-		}
-
-		UnitBase->ServerMeshRotation = SpawnParameter.ServerMeshRotation;
-			
-		UnitBase->OnRep_MeshAssetPath();
-		UnitBase->OnRep_MeshMaterialPath();
-
-		UnitBase->SetReplicateMovement(true);
-		SetReplicates(true);
-		UnitBase->GetMesh()->SetIsReplicated(true);
-
-		// Does this have to be replicated?
-		UnitBase->SetMeshRotationServer();
-		
-		UnitBase->UnitState = SpawnParameter.State;
-		UnitBase->UnitStatePlaceholder = SpawnParameter.StatePlaceholder;
-
-		if(UnitToChase)
-		{
-			UnitBase->UnitToChase = UnitToChase;
-			UnitBase->SetUnitState(UnitData::Chase);
-		}
-		
-		UGameplayStatics::FinishSpawningActor(
-		 Cast<AActor>(UnitBase), 
-		 UnitTransform
-		);
-
-
-		UnitBase->InitializeAttributes();
-
-		if(Waypoint)
-		UnitBase->NextWaypoint = Waypoint;
-		
-		if(UIndex == 0)
-		{
-			GameMode->AddUnitIndexAndAssignToAllUnitsArray(UnitBase);
-			
-			FUnitSpawnData UnitSpawnDataSet;
-			UnitSpawnDataSet.Id = SpawnParameter.Id;
-			UnitSpawnDataSet.UnitBase = UnitBase;
-			UnitSpawnDataSet.SpawnParameter = SpawnParameter;
-			SummonedUnitsDataSet.Add(UnitSpawnDataSet);
-		}
-		else
-		{
-			UnitBase->UnitIndex = UIndex;
-			SetUnitBase(UIndex, UnitBase);
-		}
-
-		return UnitBase->UnitIndex;
-	}
-
-	return 0;
+	//return 0;
 }
 
 bool AUnitBase::IsSpawnedUnitDead(int UIndex)
@@ -610,46 +766,3 @@ void AUnitBase::SetUnitBase(int UIndex, AUnitBase* NewUnit)
 	// If no unit matches the UnitIndex, you can either return false, 
 	// or handle it based on how you want to treat units that are not found
 }
-
-
-/*
-bool AUnitBase::SetNextUnitToChase()
-{
-	if(!UnitsToChase.Num()) return false;
-		
-	float ShortestDistance = GetDistanceTo(UnitsToChase[0]);
-	int IndexShortestDistance = 0;
-	for(int i = 0; i < UnitsToChase.Num(); i++)
-	{
-		if(UnitsToChase[i] && UnitsToChase[i]->GetUnitState() != UnitData::Dead)
-		{
-			DistanceToUnitToChase = GetDistanceTo(UnitsToChase[i]);
-						
-			if(DistanceToUnitToChase < ShortestDistance)
-			{
-				ShortestDistance = DistanceToUnitToChase;
-				IndexShortestDistance = i;
-			}
-		}
-	}
-
-	bool RValue = false;
-	
-	if(UnitsToChase[IndexShortestDistance] && UnitsToChase[IndexShortestDistance]->GetUnitState() != UnitData::Dead)
-	{
-		UnitToChase = UnitsToChase[IndexShortestDistance];
-		RValue =  true;
-	}
-
-	TArray <AUnitBase*> UnitsToDelete = UnitsToChase;
-	
-	for(int i = 0; i < UnitsToDelete.Num(); i++)
-	{
-		if(UnitsToDelete[i] && UnitsToDelete[i]->GetUnitState() == UnitData::Dead)
-		{
-			UnitsToChase.Remove(UnitsToDelete[i]);
-		}
-	}
-
-	return RValue;
-}*/

@@ -9,6 +9,7 @@
 #include <GameplayEffectTypes.h>
 #include "Engine/Engine.h"
 #include "Characters/Unit/LevelUnit.h"
+#include "Controller/PlayerController/ControllerBase.h"
 #include "Net/UnrealNetwork.h"
 
 
@@ -16,7 +17,9 @@
 void AGASUnit::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	CreateOwnerShip();
+	AbilitySystemComponent->SetIsReplicated(true);
+	//bReplicates = true;
 }
 
 void AGASUnit::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -24,8 +27,17 @@ void AGASUnit::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetime
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AGASUnit, AbilitySystemComponent);
 	DOREPLIFETIME(AGASUnit, Attributes);
+	DOREPLIFETIME(AGASUnit, ToggleUnitDetection); // Added for BUild
+	DOREPLIFETIME(AGASUnit, DefaultAttributeEffect);
+	DOREPLIFETIME(AGASUnit, DefaultAbilities);
+
 }
 
+
+void AGASUnit::CreateOwnerShip()
+{
+
+}
 // Called every frame
 void AGASUnit::Tick(float DeltaTime)
 {
@@ -133,17 +145,29 @@ void AGASUnit::OnAbilityActivated(UGameplayAbility* ActivatedAbility)
 	// Do something with the ActivatedAbilityInstance...
 }
 
+void AGASUnit::SetToggleUnitDetection_Implementation(bool ToggleTo)
+{
+	ToggleUnitDetection = ToggleTo;
+}
+
+bool AGASUnit::GetToggleUnitDetection()
+{
+	return ToggleUnitDetection;
+}
+
+
 void AGASUnit::ActivateAbilityByInputID(EGASAbilityInputID InputID, const TArray<TSubclassOf<UGameplayAbilityBase>>& AbilitiesArray)
 {
-	if(AbilitySystemComponent)
-	{
-		TSubclassOf<UGameplayAbility> AbilityToActivate = GetAbilityForInputID(InputID, AbilitiesArray);
-		if(AbilityToActivate != nullptr)
+		if(AbilitySystemComponent)
 		{
-			AbilitySystemComponent->TryActivateAbilityByClass(AbilityToActivate);
+			TSubclassOf<UGameplayAbility> AbilityToActivate = GetAbilityForInputID(InputID, AbilitiesArray);
+			if(AbilityToActivate != nullptr)
+			{
+				AbilitySystemComponent->TryActivateAbilityByClass(AbilityToActivate);
+			}
 		}
-	}
 }
+
 
 TSubclassOf<UGameplayAbility> AGASUnit::GetAbilityForInputID(EGASAbilityInputID InputID, const TArray<TSubclassOf<UGameplayAbilityBase>>& AbilitiesArray)
 {

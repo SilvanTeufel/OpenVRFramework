@@ -4,7 +4,7 @@
 #include <Components/Button.h>
 #include "Blueprint/UserWidget.h"
 #include "Components/VerticalBox.h"
-#include "Controller/ControllerBase.h"
+#include "Controller/PlayerController/ControllerBase.h"
 #include "GameFramework/GameSession.h"
 
 void UTalentChooser::NativeConstruct()
@@ -17,7 +17,7 @@ void UTalentChooser::NativeConstruct()
 
     SetVisibility(ESlateVisibility::Hidden);
 }
-
+/*
 void UTalentChooser::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
     Super::NativeTick(MyGeometry, InDeltaTime);
@@ -26,7 +26,28 @@ void UTalentChooser::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
     UpdateExperience();
     UpdateLevelAndTalents();
 }
+*/
+void UTalentChooser::UpdateWidget()
+{
+    UpdateProgressBars();
+    UpdateExperience();
+    UpdateLevelAndTalents();
+}
 
+void UTalentChooser::StartUpdateTimer()
+{
+    // Set a repeating timer to call NativeTick at a regular interval based on UpdateInterval
+    GetWorld()->GetTimerManager().SetTimer(UpdateTimerHandle, this, &UTalentChooser::UpdateWidget, UpdateInterval, true);
+}
+
+void UTalentChooser::StopTimer()
+{
+    // Check if the timer is currently active before attempting to clear it
+    if (GetWorld()->GetTimerManager().IsTimerActive(UpdateTimerHandle))
+    {
+        GetWorld()->GetTimerManager().ClearTimer(UpdateTimerHandle);
+    }
+}
 
 void UTalentChooser::UpdateProgressBars()
 {

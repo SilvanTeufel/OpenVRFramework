@@ -42,7 +42,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Ability)
 	void StartAcceleratingFromDestination(const FVector& NewDestination, const FVector& NewTargetVelocity, float NewAccelerationRate, float NewRequiredDistanceToStart);
-
+	
 	// Set Unit States  //////////////////////////////////////////
 	UFUNCTION(BlueprintCallable, Category = Ability)
 	void SetUnitState(TEnumAsByte<UnitData::EState> NewUnitState);
@@ -53,10 +53,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Ability)
 	virtual void GetAbilitiesArrays();
 	
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	TEnumAsByte<UnitData::EState> UnitState = UnitData::Idle;
 	
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	TEnumAsByte<UnitData::EState> UnitStatePlaceholder = UnitData::Patrol;
 	///////////////////////////////////////////////////////////////////
 
@@ -84,6 +84,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Ability)
 	EGASAbilityInputID ThrowAbilityID;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Ability)
+	EGASAbilityInputID DefaultAbilityID;
+	
 	UPROPERTY(EditAnywhere, Category = Ability)
 	int32 AutoAbilitySequence[4] = {0, 1, 2, 3};
 

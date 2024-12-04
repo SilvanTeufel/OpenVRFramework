@@ -57,81 +57,95 @@ public:
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UFUNCTION(Server, Reliable,BlueprintCallable, Category = RTSUnitTemplate)
+	void RemoveAreaFromGroup();
+	
+	UFUNCTION(Server, Reliable, Category = RTSUnitTemplate)
+	void AddAreaToGroup();
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	FString Tag;
 	
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	UStaticMeshComponent* Mesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
+	int TeamId = 0;
 	
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	TSubclassOf<UGameplayEffect> AreaEffect;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite,  Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,  Category = RTSUnitTemplate)
 	class UCapsuleComponent* TriggerCapsule;
 	
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void HandleResourceExtractionArea(AWorkingUnitBase* Worker, AUnitBase* UnitBase);
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void HandleBaseArea(AWorkingUnitBase* Worker, AUnitBase* UnitBase, AResourceGameMode* ResourceGameMode, bool CanAffordConstruction);
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void SwitchResourceArea(AWorkingUnitBase* Worker, AUnitBase* UnitBase, AResourceGameMode* ResourceGameMode);
 	
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
-	void SwitchBuildArea(AWorkingUnitBase* Worker, AUnitBase* UnitBase, AResourceGameMode* ResourceGameMode);
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
+	bool SwitchBuildArea(AWorkingUnitBase* Worker, AUnitBase* UnitBase, AResourceGameMode* ResourceGameMode);
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void HandleBuildArea(AWorkingUnitBase* Worker, AUnitBase* UnitBase, AResourceGameMode* ResourceGameMode, bool CanAffordConstruction);
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	EResourceType ConvertWorkAreaTypeToResourceType(WorkAreaData::WorkAreaType WorkAreaType);
 	
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void DespawnWorkResource(AWorkResource* WorkResource);
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	TEnumAsByte<WorkAreaData::WorkAreaType> Type = WorkAreaData::Primary;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	TSubclassOf<class AWorkResource> WorkResourceClass;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	TSubclassOf<class ABuildingBase> BuildingClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	TSubclassOf<class AAIController> BuildingController;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	ABuildingBase* Building;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	float BuildTime = 5.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	float BuildZOffset = 200.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	bool PlannedBuilding = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	bool StartedBuilding = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
+	bool DestroyAfterBuild = true;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	FBuildingCost ConstructionCost;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	float ResetStartBuildTime = 25.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	float ControlTimer = 0.f;
-	
-	//UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
+	bool IsPaid = false;
+	//UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	//bool CanAffordConstruction(int32 TeamId, int32 NumberOfTeams, TArray<FResourceArray> TeamResources);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	class AWaypoint* NextWaypoint;
 };

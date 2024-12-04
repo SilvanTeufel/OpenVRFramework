@@ -1,7 +1,9 @@
 
 #include "Characters/Camera/ExtendedCameraBase.h"
+
+#include "Characters/Unit/BuildingBase.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Controller/CameraControllerBase.h"
+#include "Controller/PlayerController/CameraControllerBase.h"
 #include "GameModes/ResourceGameMode.h"
 #include "GameStates/ResourceGameState.h"
 #include "GAS/GAS.h"
@@ -12,6 +14,7 @@
 
 AExtendedCameraBase::AExtendedCameraBase(const FObjectInitializer& ObjectInitializer) :Super(ObjectInitializer)
 {
+	
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -35,15 +38,13 @@ AExtendedCameraBase::AExtendedCameraBase(const FObjectInitializer& ObjectInitial
 
 	ResourceWidget = ObjectInitializer.CreateDefaultSubobject<UWidgetComponent>(this, TEXT("ResourceWidget"));
 	ResourceWidget->AttachToComponent(RootScene, FAttachmentTransformRules::KeepRelativeTransform);
-
+	
 	
 		GetCameraBaseCapsule()->BodyInstance.bLockXRotation = true;
 		GetCameraBaseCapsule()->BodyInstance.bLockYRotation = true;
 		GetCameraBaseCapsule()->BodyInstance.bLockZRotation = true;
 	
-		GetMesh()->AttachToComponent(GetCameraBaseCapsule(), FAttachmentTransformRules::KeepRelativeTransform);
-
-
+	
 		UCapsuleComponent* CComponent = GetCapsuleComponent();
 		if (CComponent)
 		{
@@ -58,13 +59,13 @@ AExtendedCameraBase::AExtendedCameraBase(const FObjectInitializer& ObjectInitial
 		UMeshComponent* CMesh = GetMesh();
 		if(CMesh)
 		{
-	
+			CMesh->AttachToComponent(GetCameraBaseCapsule(), FAttachmentTransformRules::KeepRelativeTransform);
 			CMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);  // Typically, we use the capsule for physics and mesh for simple queries like overlap
 			CMesh->SetCollisionResponseToAllChannels(ECR_Ignore);  // Start by ignoring all channels
 			CMesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);  // Overlap with other pawns
 			CMesh->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Ignore);  // Overlap with dynamic objects
 		}
-
+	
 }
 
 // BeginPlay implementation
@@ -72,13 +73,14 @@ void AExtendedCameraBase::BeginPlay()
 {
 	// Call the base class BeginPlay
 	Super::BeginPlay();
-
 	SetupResourceWidget();
 
 }
 
 void AExtendedCameraBase::SetupResourceWidget()
 {
+	if(!ResourceWidget) return;
+	
 	if (IsOwnedByLocalPlayer()) // This is a pseudo-function, replace with actual ownership check
 	{
 		ResourceWidget->SetVisibility(true);
@@ -91,7 +93,7 @@ void AExtendedCameraBase::SetupResourceWidget()
 			if(CameraControllerBase)
 			{
 				ResourceBar->SetTeamId(CameraControllerBase->SelectableTeamId);
-
+				ResourceBar->StartUpdateTimer();
 			}
 		}
 	}
@@ -187,6 +189,10 @@ void AExtendedCameraBase::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		EnhancedInputComponentBase->BindActionByTag(InputConfig, GameplayTags.InputTag_5_Pressed, ETriggerEvent::Triggered, this, &AExtendedCameraBase::SwitchControllerStateMachine, 25);
 		EnhancedInputComponentBase->BindActionByTag(InputConfig, GameplayTags.InputTag_6_Pressed, ETriggerEvent::Triggered, this, &AExtendedCameraBase::SwitchControllerStateMachine, 26);
 
+		EnhancedInputComponentBase->BindActionByTag(InputConfig, GameplayTags.InputTag_Alt_Pressed, ETriggerEvent::Triggered, this, &AExtendedCameraBase::Input_Alt_Pressed, 0);
+		EnhancedInputComponentBase->BindActionByTag(InputConfig, GameplayTags.InputTag_Alt_Released, ETriggerEvent::Triggered, this, &AExtendedCameraBase::Input_Alt_Released, 0);
+		
+
 	}
 
 }
@@ -205,17 +211,22 @@ void AExtendedCameraBase::SetUserWidget(AUnitBase* SelectedActor)
 			TalentBar->SetVisibility(ESlateVisibility::Visible);
 			TalentBar->SetOwnerActor(SelectedActor);
 			TalentBar->CreateClassUIElements();
+			TalentBar->StartUpdateTimer();
 		}
 
 		if (AbilityBar) {
 			AbilityBar->SetVisibility(ESlateVisibility::Visible);
 			AbilityBar->SetOwnerActor(SelectedActor);
+			AbilityBar->StartUpdateTimer();
 		}
 		
 	}else
 	{
+		TalentBar->StopTimer();
+		AbilityBar->StopTimer();
 		TalentBar->SetVisibility(ESlateVisibility::Collapsed);
 		AbilityBar->SetVisibility(ESlateVisibility::Collapsed);
+		
 	}
 
 }
@@ -237,11 +248,20 @@ void AExtendedCameraBase::SetSelectorWidget(int Id, AUnitBase* SelectedActor)
 
 void AExtendedCameraBase::OnAbilityInputDetected(EGASAbilityInputID InputID, AGASUnit* SelectedUnit, const TArray<TSubclassOf<UGameplayAbilityBase>>& AbilitiesArray)
 {
+
 	if(SelectedUnit)
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("OnAbilityInputDetected: Activating ability ID %d for unit: %s"), static_cast<int32>(InputID), *SelectedUnit->GetName());
 		SelectedUnit->ActivateAbilityByInputID(InputID, AbilitiesArray);
 	}
+}
+
+void AExtendedCameraBase::ExecuteOnAbilityInputDetected(EGASAbilityInputID InputID, ACameraControllerBase* CamController)
+{
+	if(!CamController) return;
+
+	CamController->ActivateKeyboardAbilitiesOnMultipleUnits(InputID);
+	
 }
 
 void AExtendedCameraBase::Input_LeftClick_Pressed(const FInputActionValue& InputActionValue, int32 Camstate)
@@ -259,6 +279,7 @@ void AExtendedCameraBase::Input_LeftClick_Pressed(const FInputActionValue& Input
 	{
 		SetCameraState(CameraData::MoveToClick);
 	}
+	
 }
 
 void AExtendedCameraBase::Input_LeftClick_Released(const FInputActionValue& InputActionValue, int32 Camstate)
@@ -298,11 +319,33 @@ void AExtendedCameraBase::Input_A_Pressed(const FInputActionValue& InputActionVa
 {
 	if(BlockControls) return;
 
-	
+	/*
 	ACameraControllerBase* CameraControllerBase = Cast<ACameraControllerBase>(GetController());
 	if(CameraControllerBase)
 	{
 		CameraControllerBase->TPressed();
+	} */
+}
+
+void AExtendedCameraBase::Input_Alt_Pressed(const FInputActionValue& InputActionValue, int32 Camstate)
+{
+	if(BlockControls) return;
+	
+	ACameraControllerBase* CameraControllerBase = Cast<ACameraControllerBase>(GetController());
+	if(CameraControllerBase)
+	{
+		CameraControllerBase->AltIsPressed = true;
+	}
+}
+
+void AExtendedCameraBase::Input_Alt_Released(const FInputActionValue& InputActionValue, int32 Camstate)
+{
+	if(BlockControls) return;
+	
+	ACameraControllerBase* CameraControllerBase = Cast<ACameraControllerBase>(GetController());
+	if(CameraControllerBase)
+	{
+		CameraControllerBase->AltIsPressed = false;
 	}
 }
 
@@ -328,18 +371,75 @@ void AExtendedCameraBase::Input_Ctrl_Released(const FInputActionValue& InputActi
 	}
 }
 
+
+
 void AExtendedCameraBase::Input_Tab_Pressed(const FInputActionValue& InputActionValue, int32 CamState)
 {
 	if(BlockControls) return;
 	
-	ShowControlWidget();
+	TabToggled = !TabToggled;
+	if(TabToggled)
+	{
+		ShowControlWidget();
+		
+		ACameraControllerBase* CameraControllerBase = Cast<ACameraControllerBase>(GetController());
+		if(!CameraControllerBase || !CameraControllerBase->HUDBase) return;
+
+		if(CameraControllerBase->HUDBase->SelectedUnits.Num())
+		{ 
+			AUnitBase* SelectedUnit = CameraControllerBase->HUDBase->SelectedUnits[0];
+			SetUserWidget(SelectedUnit);
+		}
+		
+		if (ResourceWidget)
+		{
+			UResourceWidget* ResourceBar= Cast<UResourceWidget>(ResourceWidget->GetUserWidgetObject());
+			if(ResourceBar) ResourceBar->StartUpdateTimer();
+			ResourceWidget->SetVisibility(true);
+		}
+
+
+	}
 }
 
 void AExtendedCameraBase::Input_Tab_Released(const FInputActionValue& InputActionValue, int32 CamState)
 {
 	if(BlockControls) return;
 	
-	HideControlWidget();
+	if(!TabToggled)
+	{
+		HideControlWidget();
+		
+		SetUserWidget(nullptr);
+
+		/*
+		if (ResourceWidget)
+		{
+			UResourceWidget* ResourceBar= Cast<UResourceWidget>(ResourceWidget->GetUserWidgetObject());
+			if(ResourceBar) ResourceBar->StopTimer();
+			ResourceWidget->SetVisibility(false);
+		}
+		*/
+	}
+}
+
+void AExtendedCameraBase::Input_Tab_Released_BP(int32 CamState)
+{
+	if(BlockControls) return;
+	
+	if(!TabToggled)
+	{
+		HideControlWidget();
+		
+		SetUserWidget(nullptr);
+
+		if (ResourceWidget)
+		{
+			UResourceWidget* ResourceBar= Cast<UResourceWidget>(ResourceWidget->GetUserWidgetObject());
+			if(ResourceBar) ResourceBar->StopTimer();
+			ResourceWidget->SetVisibility(false);
+		}
+	}
 }
 
 void AExtendedCameraBase::Input_Shift_Pressed(const FInputActionValue& InputActionValue, int32 CamState)
@@ -528,27 +628,27 @@ void AExtendedCameraBase::SwitchControllerStateMachine(const FInputActionValue& 
 			} break;
 		case 21:
 			{
-				
+				ExecuteOnAbilityInputDetected(EGASAbilityInputID::AbilitySeven, CameraControllerBase);
 			} break;
 		case 22:
 			{
-				
+				ExecuteOnAbilityInputDetected(EGASAbilityInputID::AbilityEight, CameraControllerBase);
 			} break;
 		case 23:
 			{
-				
+				ExecuteOnAbilityInputDetected(EGASAbilityInputID::AbilityNine, CameraControllerBase);
 			} break;
 		case 24:
 			{
-				
+				ExecuteOnAbilityInputDetected(EGASAbilityInputID::AbilityTen, CameraControllerBase);
 			} break;
 		case 25:
 			{
-				
+				ExecuteOnAbilityInputDetected(EGASAbilityInputID::AbilityEleven, CameraControllerBase);
 			} break;
 		case 26:
 			{
-				
+				ExecuteOnAbilityInputDetected(EGASAbilityInputID::AbilityTwelve, CameraControllerBase);
 			} break;
 		default:
 			{
@@ -745,69 +845,27 @@ void AExtendedCameraBase::SwitchControllerStateMachine(const FInputActionValue& 
 			} break;
 		case 21:
 			{
-				for (AGASUnit* SelectedUnit : CameraControllerBase->SelectedUnits)
-				{
-					if (SelectedUnit)
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Activating AbilityOne for unit: %s"), *SelectedUnit->GetName());
-						OnAbilityInputDetected(EGASAbilityInputID::AbilityOne, SelectedUnit, SelectedUnit->DefaultAbilities);
-					}
-				}
+				ExecuteOnAbilityInputDetected(EGASAbilityInputID::AbilityOne, CameraControllerBase);
 			} break;
 		case 22:
 			{
-				for (AGASUnit* SelectedUnit : CameraControllerBase->SelectedUnits)
-				{
-					if (SelectedUnit)
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Activating AbilityTwo for unit: %s"), *SelectedUnit->GetName());
-						OnAbilityInputDetected(EGASAbilityInputID::AbilityTwo, SelectedUnit, SelectedUnit->DefaultAbilities);
-					}
-				}
+				ExecuteOnAbilityInputDetected(EGASAbilityInputID::AbilityTwo, CameraControllerBase);
 			} break;
 		case 23:
 			{
-				for (AGASUnit* SelectedUnit : CameraControllerBase->SelectedUnits)
-				{
-					if (SelectedUnit)
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Activating AbilityThree for unit: %s"), *SelectedUnit->GetName());
-						OnAbilityInputDetected(EGASAbilityInputID::AbilityThree, SelectedUnit, SelectedUnit->DefaultAbilities);
-					}
-				}
+				ExecuteOnAbilityInputDetected(EGASAbilityInputID::AbilityThree, CameraControllerBase);
 			} break;
 		case 24:
 			{
-				for (AGASUnit* SelectedUnit : CameraControllerBase->SelectedUnits)
-				{
-					if (SelectedUnit)
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Activating AbilityFour for unit: %s"), *SelectedUnit->GetName());
-						OnAbilityInputDetected(EGASAbilityInputID::AbilityFour, SelectedUnit, SelectedUnit->DefaultAbilities);
-					}
-				}
+				ExecuteOnAbilityInputDetected(EGASAbilityInputID::AbilityFour, CameraControllerBase);
 			} break;
 		case 25:
 			{
-				for (AGASUnit* SelectedUnit : CameraControllerBase->SelectedUnits)
-				{
-					if (SelectedUnit)
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Activating AbilityFive for unit: %s"), *SelectedUnit->GetName());
-						OnAbilityInputDetected(EGASAbilityInputID::AbilityFive, SelectedUnit, SelectedUnit->DefaultAbilities);
-					}
-				}
+				ExecuteOnAbilityInputDetected(EGASAbilityInputID::AbilityFive, CameraControllerBase);
 			} break;
 		case 26:
 			{
-				for (AGASUnit* SelectedUnit : CameraControllerBase->SelectedUnits)
-				{
-					if (SelectedUnit)
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Activating AbilitySix for unit: %s"), *SelectedUnit->GetName());
-						OnAbilityInputDetected(EGASAbilityInputID::AbilitySix, SelectedUnit, SelectedUnit->DefaultAbilities);
-					}
-				}
+				ExecuteOnAbilityInputDetected(EGASAbilityInputID::AbilitySix, CameraControllerBase);
 			} break;
 		}
 	}

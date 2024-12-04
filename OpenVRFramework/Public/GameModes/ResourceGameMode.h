@@ -38,7 +38,7 @@ public:
 	TArray<AWorkArea*> LegendaryAreas;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Work)
-	TArray<AWorkArea*> BaseAreas;
+	TArray<ABuildingBase*> BaseAreas;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Work)
 	TArray<AWorkArea*> BuildAreas;
@@ -54,13 +54,17 @@ public:
 	AResourceGameMode();
 
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
+
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
+	void RemoveBaseFromGroup(ABuildingBase* BuildingBase);
+
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
+	void AddBaseToGroup(ABuildingBase* BuildingBase);
+
 	
 protected:
 	virtual void BeginPlay() override; // Override BeginPlay
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Work)
-	FWorkAreaArrays WorkAreaGroups; // Storage for work areas grouped by type
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Work)
 	int MaxResourceAreasToSet = 5;
 
@@ -68,72 +72,82 @@ protected:
 	int MaxBuildAreasToSet = 15;
 	
 	// Helper function to initialize resource arrays
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void InitializeResources(int32 NumberOfTeams);
-
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void GatherWorkAreas();
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
+	void GatherBases();
+	
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void AssignWorkAreasToWorkers();
+
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
+	ABuildingBase* GetClosestBaseFromArray(AWorkingUnitBase* Worker, const TArray<ABuildingBase*>& Bases);
 	
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	AWorkArea* GetClosestWorkArea(AWorkingUnitBase* Worker, const TArray<AWorkArea*>& WorkAreas);
-	
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+
+	/*
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	TArray<AWorkArea*> GetClosestBase(AWorkingUnitBase* Worker);
+	*/
 	
 public:
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Work)
+	FWorkAreaArrays WorkAreaGroups; // Storage for work areas grouped by type
+	
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = Work)
 	int32 NumberOfTeams = 10;
 	
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	TArray<AWorkArea*> GetFiveClosestResourcePlaces(AWorkingUnitBase* Worker);
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	TArray<AWorkArea*> GetClosestBuildPlaces(AWorkingUnitBase* Worker);
 	
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	AWorkArea* GetRandomClosestWorkArea(const TArray<AWorkArea*>& WorkAreas);
 	// Function to modify a resource for a specific team
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = RTSUnitTemplate)
 	void ModifyResource(EResourceType ResourceType, int32 TeamId, float Amount);
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	float GetResource(int TeamId, EResourceType RType);
 	
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = Work)
 	TArray<FResourceArray> TeamResources;
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	bool CanAffordConstruction(const FBuildingCost& ConstructionCost, int32 TeamId) const;
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void AssignWorkAreasToWorker(AWorkingUnitBase* Worker);
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	AWorkArea* GetSuitableWorkAreaToWorker(int TeamId, const TArray<AWorkArea*>& WorkAreas);
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	TArray<AWorkArea*> GetClosestResourcePlaces(AWorkingUnitBase* Worker);
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void AddCurrentWorkersForResourceType(int TeamId, EResourceType ResourceType, float Amount);
 	
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	int32 GetCurrentWorkersForResourceType(int TeamId, EResourceType ResourceType) const;
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void AddMaxWorkersForResourceType(int TeamId, EResourceType ResourceType, float Amount);
 	
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	int32 GetMaxWorkersForResourceType(int TeamId, EResourceType ResourceType) const;
 	
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void SetCurrentWorkersForResourceType(int TeamId, EResourceType ResourceType, float Amount);
 
-	UFUNCTION(BlueprintCallable, Category = OpenVRFramework)
+	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void SetAllCurrentWorkers(int TeamId);
-	
 };

@@ -1,15 +1,17 @@
 // Copyright 2022 Silvan Teufel / Teufel-Engineering.com All Rights Reserved.
 
 
-#include "Controller/ControllerBase.h"
+#include "Controller/PlayerController/ControllerBase.h"
 #include "NavigationSystem.h" // Include this for navigation functions
-#include "Controller/CameraControllerBase.h"
+#include "Controller/PlayerController/CameraControllerBase.h"
 #include "Core/UnitData.h"
 #include "AIController.h"
 #include "Landscape.h"
 #include "Actors/EffectArea.h"
 #include "Actors/MissileRain.h"
+#include "Actors/UnitSpawnPlatform.h"
 #include "Characters/Camera/ExtendedCameraBase.h"
+#include "Characters/Unit/BuildingBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Navigation/PathFollowingComponent.h"
@@ -29,18 +31,29 @@ AControllerBase::AControllerBase() {
 
 void AControllerBase::BeginPlay() {
 
-		ToggleFPSDisplay(ShowFPS);
-		CameraBase = Cast<ACameraBase>(GetPawn());
-		HUDBase = Cast<APathProviderHUD>(GetHUD());
-		if(HUDBase && HUDBase->StopLoading) CameraBase->DeSpawnLoadingWidget();
+	Super::BeginPlay();
+	
+	CameraBase = Cast<ACameraBase>(GetPawn());
+	HUDBase = Cast<APathProviderHUD>(GetHUD());
+	if(HUDBase && HUDBase->StopLoading && CameraBase) CameraBase->DeSpawnLoadingWidget();
+	
+	RTSGameMode = Cast<ARTSGameModeBase>(GetWorld()->GetAuthGameMode());
+
+	if (RTSGameMode)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("!!!!!Found GameMode Inside ControllerBase!!!!"));
+	}
+	ToggleUnitCountDisplay(ShowUnitCount);
 }
 
-void AControllerBase::ToggleFPSDisplay(bool bEnable)
+
+
+void AControllerBase::ToggleUnitCountDisplay(bool bEnable)
 {
 	if (bEnable)
 	{
 		// Start the timer to call DisplayFPS every 2 seconds
-		GetWorldTimerManager().SetTimer(FPSTimerHandle, this, &AControllerBase::DisplayFPS, 2.0f, true);
+		GetWorldTimerManager().SetTimer(FPSTimerHandle, this, &AControllerBase::DisplayUnitCount, 2.0f, true);
 	}
 	else
 	{
@@ -49,24 +62,15 @@ void AControllerBase::ToggleFPSDisplay(bool bEnable)
 	}
 }
 
-void AControllerBase::DisplayFPS()
+void AControllerBase::DisplayUnitCount()
 {
-	float DeltaTime = GetWorld()->DeltaTimeSeconds;
-	float FPS = 1.0f / DeltaTime;
-	FString FPSMessage = FString::Printf(TEXT("FPS: %f"), FPS);
-
-	// Retrieve the count of all units from HUDBase or a similar class
-	int UnitsCount = HUDBase->AllUnits.Num();
-	FString UnitsMessage = FString::Printf(TEXT("Unit Count: %d"), UnitsCount);
-
-	// Combine FPS and Unit Count messages
-	FString CombinedMessage = FPSMessage + TEXT(" | ") + UnitsMessage;
-
-	// Display the combined message on screen
-	if (GEngine)
+	
+	if (RTSGameMode)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, CombinedMessage, true);
+		int UnitCount = RTSGameMode->AllUnits.Num();
+		UE_LOG(LogTemp, Warning, TEXT("UnitCount: %d"), UnitCount);
 	}
+
 }
 
 void AControllerBase::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
@@ -90,6 +94,7 @@ void AControllerBase::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AControllerBase, SIsPressedState);
 	DOREPLIFETIME(AControllerBase, MiddleMouseIsPressed);
 	DOREPLIFETIME(AControllerBase, SelectableTeamId);
+	DOREPLIFETIME(AControllerBase, UEPathfindingCornerOffset); // Added for Build
 }
 
 void AControllerBase::SetupInputComponent() {
@@ -102,7 +107,8 @@ void AControllerBase::SetupInputComponent() {
 void AControllerBase::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	
+
+
 	if(HUDBase)
 	if((HUDBase->CreatedGridAndDijkstra || HUDBase->StopLoading) && CameraBase)
 	{
@@ -115,15 +121,13 @@ void AControllerBase::Tick(float DeltaSeconds)
 	FHitResult Hit;
 	GetHitResultUnderCursor(ECollisionChannel::ECC_Visibility, false, Hit);
 	
-	//if(IsShiftPressed)
-		//ClickLocation = Hit.Location;
-	
 	if(AttackToggled)
 	for (int32 i = 0; i < SelectedUnits.Num(); i++)
 	{
-		if(SelectedUnits[i] && SelectedUnits[i]->GetUnitState() == UnitData::Idle && SelectedUnits[i]->ToggleUnitDetection)
+		if(SelectedUnits[i] && !SelectedUnits[i]->IsA(ABuildingBase::StaticClass()) && SelectedUnits[i]->GetUnitState() == UnitData::Idle && SelectedUnits[i]->ToggleUnitDetection)
 		HUDBase->ControllDirectionToMouse(SelectedUnits[i], Hit);
 	}
+
 
 	TArray<FPathPoint> PathPoints;
 
@@ -134,6 +138,18 @@ void AControllerBase::Tick(float DeltaSeconds)
 			SetRunLocationUseDijkstraForAI(HUDBase->EnemyUnitBases[i]->DijkstraEndPoint, HUDBase->EnemyUnitBases[i]->DijkstraStartPoint, HUDBase->EnemyUnitBases, PathPoints, i);
 			HUDBase->EnemyUnitBases[i]->DijkstraSetPath = false;
 		}
+
+	/*
+	if (RTSGameMode)
+	{
+		for (AActor* Actor : RTSGameMode->AllUnits)
+		{
+			AUnitBase* Unit = Cast<AUnitBase>(Actor);
+			Unit->VisibilityTick();
+		}
+	}
+	*/
+	
 }
 
 void AControllerBase::ShiftPressed()
@@ -160,7 +176,7 @@ void AControllerBase::SelectUnit(int Index)
 
 void AControllerBase::LeftClickAMoveUEPF_Implementation(AUnitBase* Unit, FVector Location)
 {
-	DrawDebugSphere(GetWorld(), Location, 15, 5, FColor::Green, false, 1.5, 0, 1);
+	DrawDebugSphere(GetWorld(), Location, 15, 5, FColor::Red, false, 1.5, 0, 1);
 	SetUnitState_Replication(Unit,1);
 	MoveToLocationUEPathFinding(Unit, Location);
 }
@@ -231,65 +247,6 @@ void AControllerBase::LeftClickSelect_Implementation()
 	SelectedUnits.Empty();
 
 }
-
-void AControllerBase::LeftClickPressed()
-{
-	LeftClickIsPressed = true;
-	if (AttackToggled) {
-		AttackToggled = false;
-		FHitResult Hit;
-		GetHitResultUnderCursor(ECollisionChannel::ECC_Visibility, false, Hit);
-		
-		for (int32 i = 0; i < SelectedUnits.Num(); i++)
-		{
-			FVector RunLocation = Hit.Location + FVector(i / 2 * 100, i % 2 * 100, 0.f);
-			LeftClickAttack_Implementation(SelectedUnits[i], RunLocation);
-		}
-		
-	}
-	else {
-		LeftClickSelect();
-
-		FHitResult Hit_Pawn;
-		GetHitResultUnderCursor(ECollisionChannel::ECC_Pawn, false, Hit_Pawn);
-		
-		if (Hit_Pawn.bBlockingHit && HUDBase)
-		{
-			AActor* HitActor = Hit_Pawn.GetActor();
-			
-			if(!HitActor->IsA(ALandscape::StaticClass()))
-				ClickedActor = Hit_Pawn.GetActor();
-			else
-				ClickedActor = nullptr;
-			
-			AUnitBase* UnitBase = Cast<AUnitBase>(Hit_Pawn.GetActor());
-			const ASpeakingUnit* SUnit = Cast<ASpeakingUnit>(Hit_Pawn.GetActor());
-			
-			if (UnitBase && (UnitBase->TeamId == SelectableTeamId || SelectableTeamId == 0) && !SUnit)
-			{
-				HUDBase->DeselectAllUnits();
-				HUDBase->SetUnitSelected(UnitBase);
-
-				if(CameraBase->AutoLockOnSelect)
-					LockCameraToUnit = true;
-			}
-			else {
-				HUDBase->InitialPoint = HUDBase->GetMousePos2D();
-				HUDBase->bSelectFriendly = true;
-			}
-		}
-	}
-
-}
-
-void AControllerBase::LeftClickReleased()
-{
-	LeftClickIsPressed = false;
-	HUDBase->bSelectFriendly = false;
-	SelectedUnits = HUDBase->SelectedUnits;
-	SetWidgets(0);
-}
-
 
 void AControllerBase::SetWidgets(int Index)
 {
@@ -395,6 +352,8 @@ void AControllerBase::SetUnitState_Replication_Implementation(AUnitBase* Unit, i
 void AControllerBase::SetToggleUnitDetection_Implementation(AUnitBase* Unit, bool State)
 {
 	Unit->SetToggleUnitDetection(State);
+	//Unit->UnitsToChase.Empty();
+	//Unit->UnitToChase = nullptr;
 }
 void AControllerBase::RightClickRunShift_Implementation(AUnitBase* Unit, FVector Location)
 {
@@ -408,8 +367,8 @@ void AControllerBase::RightClickRunShift_Implementation(AUnitBase* Unit, FVector
 	}
 						
 	Unit->RunLocationArray.Add(Location);
-	Unit->UnitsToChase.Empty();
-	Unit->UnitToChase = nullptr;
+	//Unit->UnitsToChase.Empty();
+	//Unit->UnitToChase = nullptr;
 	Unit->SetToggleUnitDetection(false);
 }
 
@@ -443,16 +402,60 @@ void AControllerBase::RightClickRunDijkstraPF_Implementation(AUnitBase* Unit, FV
 	if(!HUDBase->DisablePathFindingOnFriendly && Range >= HUDBase->RangeThreshold && !HUDBase->IsLocationInNoPathFindingAreas(Location))
 		SetRunLocationUseDijkstra(Location, UnitLocation, SelectedUnits, PathPoints, Counter);
 }
-void AControllerBase::RightClickPressed()
+
+void AControllerBase::CreateAWaypoint(FVector NewWPLocation, ABuildingBase* BuildingBase)
 {
-	AttackToggled = false;
-	FHitResult Hit;
-	GetHitResultUnderCursor(ECollisionChannel::ECC_Visibility, false, Hit);
+	UWorld* World = GetWorld();
+	if (World && WaypointClass)
+	{
+		// Define the spawn parameters (can customize this further if needed)
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = GetInstigator();
+
+		// Spawn the waypoint actor
+		AWaypoint* NewWaypoint = World->SpawnActor<AWaypoint>(WaypointClass, NewWPLocation, FRotator::ZeroRotator, SpawnParams);
+
+		if (NewWaypoint)
+		{
+			// Assign the new waypoint to the building
+			BuildingBase->NextWaypoint = NewWaypoint;
+		}
+	}
+}
+bool AControllerBase::SetBuildingWaypoint(FVector NewWPLocation, AUnitBase* Unit)
+{
+			ABuildingBase* BuildingBase = Cast<ABuildingBase>(Unit);
+			NewWPLocation.Z += RelocateWaypointZOffset;
+			if(BuildingBase)
+			{
+				if(BuildingBase->NextWaypoint) BuildingBase->NextWaypoint->SetActorLocation(NewWPLocation);
+				else if(BuildingBase->HasWaypoint) CreateAWaypoint(NewWPLocation, BuildingBase);
+				
+				return true;
+			}
+	
+	return false;
+}
+
+void AControllerBase::RunUnitsAndSetWaypoints(FHitResult Hit)
+{
+	int32 NumUnits = SelectedUnits.Num();
+	int32 GridSize = FMath::CeilToInt(FMath::Sqrt((float)NumUnits));
 	
 	for (int32 i = 0; i < SelectedUnits.Num(); i++) {
 		if (SelectedUnits[i] && SelectedUnits[i]->UnitState != UnitData::Dead) {
-			FVector RunLocation = Hit.Location + FVector(i / 2 * 100, i % 2 * 100, 0.f);
-			if (IsShiftPressed) {
+			//FVector RunLocation = Hit.Location + FVector(i / 2 * 100, i % 2 * 100, 0.f);
+
+			int32 Row = i / GridSize;     // Row index
+			int32 Col = i % GridSize;     // Column index
+
+			FVector RunLocation = Hit.Location + FVector(Col * 100, Row * 100, 0.f);  // Adjust x and y positions equally for a square grid
+
+			if(SetBuildingWaypoint(RunLocation, SelectedUnits[i]))
+			{
+				// DO NOTHING
+			}else if (IsShiftPressed) {
 				RightClickRunShift_Implementation(SelectedUnits[i], RunLocation);
 			}else if(UseUnrealEnginePathFinding && !SelectedUnits[i]->IsFlying)
 			{
@@ -464,7 +467,6 @@ void AControllerBase::RightClickPressed()
 		}
 	}
 }
-
 
 void AControllerBase::SetRunLocationUseDijkstra(FVector HitLocation, FVector UnitLocation, TArray <AUnitBase*> Units, TArray<FPathPoint>& PathPoints, int i)
 {
@@ -656,290 +658,14 @@ void AControllerBase::SpawnEffectArea(int TeamId, FVector Location, FVector Scal
 	
 }
 
-float AControllerBase::GetResource(int TeamId, EResourceType RType)
-{
-	AResourceGameMode* GameMode = Cast<AResourceGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
-	if (!GameMode) return 0;
-	
-	return GameMode->GetResource(TeamId, RType);
-}
-
-void AControllerBase::ModifyResource_Implementation(EResourceType ResourceType, int32 TeamId, float Amount){
-	
-	AResourceGameMode* GameMode = Cast<AResourceGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
-	if (!GameMode) return;
-	
-	GameMode->ModifyResource(ResourceType, TeamId, Amount);
-}
-
 void AControllerBase::SetControlerTeamId_Implementation(int Id)
 {
 	SelectableTeamId = Id;
 }
 
-void AControllerBase::LoadLevel_Implementation(const FString& SlotName)
+void AControllerBase::SetControlerDefaultWaypoint_Implementation(AWaypoint* Waypoint)
 {
-	for (int32 i = 0; i < SelectedUnits.Num(); i++)
-	{
-		if (SelectedUnits[i] && IsLocalController())
-		{
-			//SelectedUnits[i]->LoadLevelDataAndAttributes(SlotName);
-			SelectedUnits[i]->LoadAbilityAndLevelData(SlotName);
-		}
-	}
+	if(Waypoint)
+		DefaultWaypoint = Waypoint;
 }
 
-void AControllerBase::SaveLevel_Implementation(const FString& SlotName)
-{
-	for (int32 i = 0; i < SelectedUnits.Num(); i++)
-	{
-		if (SelectedUnits[i] && IsLocalController())
-		{
-			//SelectedUnits[i]->SaveLevelDataAndAttributes(SlotName);
-			SelectedUnits[i]->SaveAbilityAndLevelData(SlotName);
-		}
-	}
-}
-
-void AControllerBase::LevelUp_Implementation()
-{
-	for (int32 i = 0; i < SelectedUnits.Num(); i++)
-	{
-		if (SelectedUnits[i] && IsLocalController())
-		{
-			SelectedUnits[i]->LevelUp();
-		}
-	}
-}
-
-
-
-void AControllerBase::ResetTalents_Implementation()
-{
-	for (int32 i = 0; i < SelectedUnits.Num(); i++)
-	{
-		if (SelectedUnits[i] && IsLocalController())
-		{
-			SelectedUnits[i]->ResetTalents();
-		}
-	}
-}
-
-void AControllerBase::HandleInvestment_Implementation(int32 InvestmentState)
-{
-	for (int32 i = 0; i < SelectedUnits.Num(); i++)
-	{
-		if (SelectedUnits[i] && IsLocalController())
-		{
-			switch (InvestmentState)
-			{
-			case 0:
-				{
-					SelectedUnits[i]->InvestPointIntoStamina();
-				}
-				break;
-			case 1:
-				{
-					SelectedUnits[i]->InvestPointIntoAttackPower();
-				}
-				break;
-			case 2:
-				{
-					SelectedUnits[i]->InvestPointIntoWillPower();
-				}
-				break;
-			case 3:
-				{
-					SelectedUnits[i]->InvestPointIntoHaste();
-				}
-				break;
-			case 4:
-				{
-					SelectedUnits[i]->InvestPointIntoArmor();
-				}
-				break;
-			case 5:
-				{
-					SelectedUnits[i]->InvestPointIntoMagicResistance();
-				}
-				break;
-			case 6:
-				{
-					UE_LOG(LogTemp, Warning, TEXT("None"));
-				}
-				break;
-			default:
-				break;
-				}
-		}
-	}
-}
-
-void AControllerBase::SaveLevelUnit_Implementation(const int32 UnitIndex, const FString& SlotName)
-{
-	for (int32 i = 0; i < HUDBase->AllUnits.Num(); i++)
-	{
-		AUnitBase* Unit = Cast<AUnitBase>(HUDBase->AllUnits[i]);
-		if (Unit && Unit->UnitIndex == UnitIndex && IsLocalController())
-		{
-			//Unit->SaveLevelDataAndAttributes(SlotName);
-			Unit->SaveAbilityAndLevelData(SlotName);
-		}
-	}
-}
-
-void AControllerBase::LoadLevelUnit_Implementation(const int32 UnitIndex, const FString& SlotName)
-{
-
-	for (int32 i = 0; i < HUDBase->AllUnits.Num(); i++)
-	{
-		AUnitBase* Unit = Cast<AUnitBase>(HUDBase->AllUnits[i]);
-		if(Unit && Unit->UnitIndex == UnitIndex && IsLocalController())
-			//Unit->LoadLevelDataAndAttributes(SlotName);
-			Unit->LoadAbilityAndLevelData(SlotName);
-	}
-
-
-}
-
-void AControllerBase::LevelUpUnit_Implementation(const int32 UnitIndex)
-{
-	for (int32 i = 0; i < HUDBase->AllUnits.Num(); i++)
-	{
-		AUnitBase* Unit = Cast<AUnitBase>(HUDBase->AllUnits[i]);
-		if (Unit && Unit->UnitIndex == UnitIndex && IsLocalController())
-		{
-			Unit->LevelUp();
-		}
-	}
-}
-
-void AControllerBase::ResetTalentsUnit_Implementation(const int32 UnitIndex)
-{
-	for (int32 i = 0; i < HUDBase->AllUnits.Num(); i++)
-	{
-		AUnitBase* Unit = Cast<AUnitBase>(HUDBase->AllUnits[i]);
-		if (Unit && Unit->UnitIndex == UnitIndex && IsLocalController())
-		{
-			Unit->ResetTalents();
-		}
-	}
-}
-
-void AControllerBase::HandleInvestmentUnit_Implementation(const int32 UnitIndex, int32 InvestmentState)
-{
-	for (int32 i = 0; i < HUDBase->AllUnits.Num(); i++)
-	{
-		AUnitBase* Unit = Cast<AUnitBase>(HUDBase->AllUnits[i]);
-		if (Unit && Unit->UnitIndex == UnitIndex && IsLocalController())
-		{
-			switch (InvestmentState)
-			{
-			case 0:
-				{
-					Unit->InvestPointIntoStamina();
-				}
-				break;
-			case 1:
-				{
-					Unit->InvestPointIntoAttackPower();
-				}
-				break;
-			case 2:
-				{
-					Unit->InvestPointIntoWillPower();
-				}
-				break;
-			case 3:
-				{
-					Unit->InvestPointIntoHaste();
-				}
-				break;
-			case 4:
-				{
-					Unit->InvestPointIntoArmor();
-				}
-				break;
-			case 5:
-				{
-					Unit->InvestPointIntoMagicResistance();
-				}
-				break;
-			case 6:
-				{
-					UE_LOG(LogTemp, Warning, TEXT("None"));
-				}
-				break;
-			default:
-				break;
-			}
-		}
-	}
-}
-
-
-void AControllerBase::SpendAbilityPoints_Implementation(EGASAbilityInputID AbilityID, int Ability, const int32 UnitIndex)
-{
-	for (int32 i = 0; i < HUDBase->AllUnits.Num(); i++)
-	{
-		AUnitBase* Unit = Cast<AUnitBase>(HUDBase->AllUnits[i]);
-		if (Unit && Unit->UnitIndex == UnitIndex && IsLocalController())
-		{
-			Unit->SpendAbilityPoints(AbilityID, Ability);
-		}
-	}
-}
-
-void AControllerBase::ResetAbility_Implementation(const int32 UnitIndex)
-{
-	for (int32 i = 0; i < HUDBase->AllUnits.Num(); i++)
-	{
-		AUnitBase* Unit = Cast<AUnitBase>(HUDBase->AllUnits[i]);
-		if (Unit && Unit->UnitIndex == UnitIndex && IsLocalController())
-		{
-			Unit->ResetAbility();
-		}
-	}
-}
-
-void AControllerBase::SaveAbility_Implementation(const int32 UnitIndex, const FString& SlotName)
-{
-	for (int32 i = 0; i < HUDBase->AllUnits.Num(); i++)
-	{
-		AUnitBase* Unit = Cast<AUnitBase>(HUDBase->AllUnits[i]);
-		if (Unit && Unit->UnitIndex == UnitIndex && IsLocalController())
-		{
-			Unit->SaveAbilityAndLevelData(SlotName);
-		}
-	}
-}
-
-void AControllerBase::LoadAbility_Implementation(const int32 UnitIndex, const FString& SlotName)
-{
-	for (int32 i = 0; i < HUDBase->AllUnits.Num(); i++)
-	{
-		AUnitBase* Unit = Cast<AUnitBase>(HUDBase->AllUnits[i]);
-		if (Unit && Unit->UnitIndex == UnitIndex && IsLocalController())
-		{
-			Unit->LoadAbilityAndLevelData(SlotName);
-		}
-	}
-}
-
-void AControllerBase::AddWorkerToResource_Implementation(EResourceType ResourceType, int TeamId)
-{
-	AResourceGameMode* GameMode = Cast<AResourceGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
-	if (GameMode)
-	{
-		GameMode->AddMaxWorkersForResourceType(TeamId, ResourceType, 1); // Assuming this function exists in GameMode
-	}
-}
-
-void AControllerBase::RemoveWorkerFromResource_Implementation(EResourceType ResourceType, int TeamId)
-{
-	AResourceGameMode* GameMode = Cast<AResourceGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
-	if (GameMode)
-	{
-		GameMode->AddMaxWorkersForResourceType(TeamId, ResourceType, -1); // Assuming this function exists in GameMode
-	}
-}

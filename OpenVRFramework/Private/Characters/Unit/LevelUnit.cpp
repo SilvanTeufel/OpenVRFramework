@@ -15,7 +15,7 @@ void ALevelUnit::Tick(float DeltaTime)
 	if(RegenerationTimer >= RegenerationDelayTime)
 	{
 
-		if(Attributes && Attributes->GetHealth() > 0)
+		if(Attributes->GetHealth() > 0)
 		{
 			Attributes->SetAttributeHealth(Attributes->GetHealth()+Attributes->GetHealthRegeneration());
 			Attributes->SetAttributeShield(Attributes->GetShield()+Attributes->GetShieldRegeneration());

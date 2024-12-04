@@ -5,7 +5,7 @@
 #include "Controller/Input/EnhancedInputComponentBase.h"
 #include "Controller/Input/GameplayTags.h"
 #include "EnhancedInputSubsystems.h"
-#include "Controller/CameraControllerBase.h"
+#include "Controller/PlayerController/CameraControllerBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "AIController.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -20,7 +20,9 @@ void ACameraBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ControlWidgetComp->SetVisibility(false);
+	
+	if(ControlWidgetComp)
+		ControlWidgetComp->SetVisibility(false);
 		
 	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 	{
@@ -36,6 +38,7 @@ void ACameraBase::BeginPlay()
 		}
 		
 	}
+	
 }
 
 void ACameraBase::SetActorBasicLocation()
@@ -51,7 +54,7 @@ void ACameraBase::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	SetActorBasicLocation();
 
-	//if(ShowControlWidgetAtStart) ShowControlWidget();
+	if(ShowControlWidgetAtStart) ShowControlWidget();
 }
 
 void ACameraBase::CreateCameraComp()

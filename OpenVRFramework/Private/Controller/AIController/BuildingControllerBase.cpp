@@ -1,21 +1,24 @@
 // Copyright 2022 Silvan Teufel / Teufel-Engineering.com All Rights Reserved.
 
-#include "Controller/BuildingControllerBase.h"
+#include "Controller/AIController/BuildingControllerBase.h"
 #include "GAS/GameplayAbilityBase.h"
 #include "Characters/Unit/GASUnit.h"
 
 void ABuildingControllerBase::Tick(float DeltaSeconds)
 {
 	//Super::Tick(DeltaSeconds);
-	BuildingControlStateMachine(DeltaSeconds);
+	BuildingControlStateMachine(MyUnitBase, DeltaSeconds);
 }
 
-void ABuildingControllerBase::BuildingControlStateMachine(float DeltaSeconds)
+void ABuildingControllerBase::BuildingControlStateMachine(AUnitBase* UnitBase, float DeltaSeconds)
 {
-		AUnitBase* UnitBase = Cast<AUnitBase>(GetPawn());
+		//AUnitBase* UnitBase = Cast<AUnitBase>(GetPawn());
 		//UE_LOG(LogTemp, Warning, TEXT("Controller UnitBase->Attributes! %f"), UnitBase->Attributes->GetAttackDamage());
 		if(!UnitBase) return;
-	
+
+		CheckUnitDetectionTimer(DeltaSeconds);
+
+		
 		switch (UnitBase->UnitState)
 		{
 		case UnitData::None:
@@ -30,6 +33,7 @@ void ABuildingControllerBase::BuildingControlStateMachine(float DeltaSeconds)
 		break;
 		case UnitData::Chase:
 		{
+				DetectAndLoseUnits();
 			BuildingChase(UnitBase, DeltaSeconds);
 		}
 		break;
@@ -54,6 +58,13 @@ void ABuildingControllerBase::BuildingControlStateMachine(float DeltaSeconds)
 		break;
 		case UnitData::Idle:
 		{
+			if(UnitBase->SetNextUnitToChase())
+			{
+					
+				UnitBase->SetUnitState(UnitData::Chase);
+				return;
+			} 
+				
 
 			if(UnitBase->CollisionUnit && UnitBase->CollisionUnit->TeamId != UnitBase->TeamId && UnitBase->CollisionUnit->GetUnitState() != UnitData::Dead)
 			{
@@ -62,23 +73,11 @@ void ABuildingControllerBase::BuildingControlStateMachine(float DeltaSeconds)
 				UnitBase->CollisionUnit = nullptr;
 			}
 
-				APlayerController* PC = GetWorld()->GetFirstPlayerController();
-				if (PC)
-				{
-					AHUDBase* MyHUD = Cast<AHUDBase>(PC->GetHUD());
-					if (MyHUD)
-					{
-						TArray<AActor*> DetectedUnits;
-						// Führe den DetectUnit Aufruf durch, ersetze 'YourTeamId' durch den entsprechenden Wert
-						MyHUD->DetectUnit(UnitBase, DetectedUnits, SightRadius);
-						OnUnitDetected(DetectedUnits);
-					}
-				}
-		
+			DetectAndLoseUnits();
 				
-			if(UnitBase->UnitsToChase.Num())
+			if(UnitBase->GetUnitState() == UnitData::Chase)
 			{
-				UnitBase->SetUnitState(UnitData::Chase);
+				//UnitBase->SetUnitState(UnitData::Chase);
 			}else
 				SetUnitBackToPatrol(UnitBase, DeltaSeconds);
 
@@ -102,7 +101,7 @@ void ABuildingControllerBase::BuildingControlStateMachine(float DeltaSeconds)
 		break;
 		}
 
-	if (UnitBase->Attributes->GetHealth() <= 0.f && UnitBase->GetUnitState() != UnitData::Dead) {
+	if (UnitBase->Attributes && UnitBase->Attributes->GetHealth() <= 0.f && UnitBase->GetUnitState() != UnitData::Dead) {
 		KillUnitBase(UnitBase);
 		UnitBase->UnitControlTimer = 0.f;
 	}
@@ -155,6 +154,10 @@ void ABuildingControllerBase::BuildingChase(AUnitBase* UnitBase, float DeltaSeco
 {
     if (!UnitBase) return;
 
+	//DetectUnits(UnitBase, DeltaSeconds, false);
+	//LoseUnitToChase(UnitBase);
+	
+	// If we lose sight of the unit, reset chase.
 	if (!UnitBase->SetNextUnitToChase()) // If no unit is being chased, try to find one, otherwise set the pathfinding.
     {
         UnitBase->SetUEPathfinding = true;
@@ -163,7 +166,7 @@ void ABuildingControllerBase::BuildingChase(AUnitBase* UnitBase, float DeltaSeco
     {
        //UnitBase->SetWalkSpeed(UnitBase->Attributes->GetRunSpeed());
        //RotateToAttackUnit(UnitBase, UnitBase->UnitToChase);
-       DistanceToUnitToChase = GetPawn()->GetDistanceTo(UnitBase->UnitToChase);
+       //DistanceToUnitToChase = GetPawn()->GetDistanceTo(UnitBase->UnitToChase);
 
         if (IsUnitToChaseInRange(UnitBase))
         {
@@ -186,40 +189,27 @@ void ABuildingControllerBase::BuildingChase(AUnitBase* UnitBase, float DeltaSeco
             UnitBase->ActivateAbilityByInputID(UnitBase->OffensiveAbilityID, UnitBase->OffensiveAbilities);
        
         }
-
-        // If we lose sight of the unit, reset chase.
-        if (DistanceToUnitToChase > LoseSightRadius) 
-        {
-            LoseUnitToChase(UnitBase);
-        }
     }
 }
 
 void ABuildingControllerBase::PatrolRandomBuilding(AUnitBase* UnitBase, float DeltaSeconds)
 {
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (PC)
-	{
-		AHUDBase* MyHUD = Cast<AHUDBase>(PC->GetHUD());
-		if (MyHUD)
-		{
-			TArray<AActor*> DetectedUnits;
-			// Führe den DetectUnit Aufruf durch, ersetze 'YourTeamId' durch den entsprechenden Wert
-			MyHUD->DetectUnit(UnitBase, DetectedUnits, SightRadius);
-			OnUnitDetected(DetectedUnits);
-		}
-	}
-				
+	//DetectUnits(UnitBase, DeltaSeconds, true);
+	//LoseUnitToChase(UnitBase);
+	/*
 	if(UnitBase->SetNextUnitToChase())
 	{
 		UnitBase->SetUEPathfinding = true;
 		UnitBase->SetUnitState(UnitData::Chase);
-	}
+	}*/
 }
 
 
 void ABuildingControllerBase::AttackBuilding(AUnitBase* UnitBase, float DeltaSeconds)
 {
+	if (!UnitBase) return;
+	//DetectUnits(UnitBase, DeltaSeconds, false);
+	
 	UnitBase->SetWalkSpeed(0);
 	UnitBase->UnitControlTimer = (UnitBase->UnitControlTimer + DeltaSeconds);
 
@@ -240,9 +230,10 @@ void ABuildingControllerBase::AttackBuilding(AUnitBase* UnitBase, float DeltaSec
 						NewDamage = UnitBase->Attributes->GetAttackDamage() - UnitBase->UnitToChase->Attributes->GetMagicResistance();
 				
 					if(UnitBase->UnitToChase->Attributes->GetShield() <= 0)
-						UnitBase->UnitToChase->SetHealth(UnitBase->UnitToChase->Attributes->GetHealth()-NewDamage);
+						UnitBase->UnitToChase->SetHealth_Implementation(UnitBase->UnitToChase->Attributes->GetHealth()-NewDamage);
 					else
-						UnitBase->UnitToChase->Attributes->SetAttributeShield(UnitBase->UnitToChase->Attributes->GetShield()-UnitBase->Attributes->GetAttackDamage());
+						UnitBase->UnitToChase->SetShield_Implementation(UnitBase->UnitToChase->Attributes->GetShield()-UnitBase->Attributes->GetAttackDamage());
+						//UnitBase->UnitToChase->Attributes->SetAttributeShield(UnitBase->UnitToChase->Attributes->GetShield()-UnitBase->Attributes->GetAttackDamage());
 
 					UnitBase->LevelData.Experience++;
 
@@ -290,6 +281,9 @@ void ABuildingControllerBase::AttackBuilding(AUnitBase* UnitBase, float DeltaSec
 
 void ABuildingControllerBase::PauseBuilding(AUnitBase* UnitBase, float DeltaSeconds)
 {
+	if (!UnitBase) return;
+	//DetectUnits(UnitBase, DeltaSeconds, false);
+	
 	UnitBase->SetWalkSpeed(0);
 				
 	UnitBase->UnitControlTimer = (UnitBase->UnitControlTimer + DeltaSeconds);

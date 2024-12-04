@@ -5,7 +5,7 @@
 #include <Components/VerticalBox.h>
 #include <Components/VerticalBoxSlot.h>
 
-#include "Controller/ControllerBase.h"
+#include "Controller/PlayerController/ControllerBase.h"
 #include "GameStates/ResourceGameState.h"
 
 void UResourceWidget::NativeConstruct()
@@ -14,23 +14,49 @@ void UResourceWidget::NativeConstruct()
     // Initialize your widget's properties and bindings here
     UpdateTeamResourcesDisplay();
     UpdateWorkerCountDisplay();
+    //StartUpdateTimer();
 }
-
+/*
 void UResourceWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
     Super::NativeTick(MyGeometry, InDeltaTime);
     // You can update things every tick if needed
+    
     UpdateTimer += InDeltaTime;
     
     // Check if the timer has reached the update interval
     if (UpdateTimer >= UpdateInterval)
     {
         
-        // Update the team resources display
-        UpdateTeamResourcesDisplay();
-        UpdateWorkerCountDisplay();
+        UpdateWidget();
         // Reset the timer
         UpdateTimer = 0.0f;
+    }
+}*/
+
+
+void UResourceWidget::UpdateWidget()
+{
+
+        UpdateTeamResourcesDisplay();
+        UpdateWorkerCountDisplay();
+        StartUpdateTimer();
+
+}
+
+void UResourceWidget::StartUpdateTimer()
+{
+    // UE_LOG(LogTemp, Warning, TEXT("UResourceWidget StartUpdateTimer!"));
+    // Set a repeating timer to call NativeTick at a regular interval based on UpdateInterval
+    GetWorld()->GetTimerManager().SetTimer(UpdateTimerHandle, this, &UResourceWidget::UpdateWidget, UpdateInterval, true);
+}
+
+void UResourceWidget::StopTimer()
+{
+    // Check if the timer is currently active before attempting to clear it
+    if (GetWorld()->GetTimerManager().IsTimerActive(UpdateTimerHandle))
+    {
+        GetWorld()->GetTimerManager().ClearTimer(UpdateTimerHandle);
     }
 }
 
@@ -49,6 +75,7 @@ void UResourceWidget::AddWorkerToResource(EResourceType ResourceType)
     {
         GameMode->AddMaxWorkersForResourceType(TeamId, ResourceType, 1); // Assuming this function exists in GameMode
     }
+    UpdateWidget();
 }
 
 void UResourceWidget::RemoveWorkerFromResource(EResourceType ResourceType)
@@ -58,6 +85,7 @@ void UResourceWidget::RemoveWorkerFromResource(EResourceType ResourceType)
     {
         GameMode->AddMaxWorkersForResourceType(TeamId, ResourceType, -1); // Assuming this function exists in GameMode
     }
+    UpdateWidget();
 }
 
 void UResourceWidget::UpdateTeamResourcesDisplay()
@@ -66,7 +94,7 @@ void UResourceWidget::UpdateTeamResourcesDisplay()
     AResourceGameState* ResourceGameState = GetWorld()->GetGameState<AResourceGameState>();
     if (!ResourceGameState)
     {
-        UE_LOG(LogTemp, Warning, TEXT("ResourceGameState not found on client."));
+       // UE_LOG(LogTemp, Warning, TEXT("ResourceGameState not found on client."));
         return;
     }
         
@@ -75,7 +103,7 @@ void UResourceWidget::UpdateTeamResourcesDisplay()
     
     if (TeamResources.IsEmpty())
     {
-        UE_LOG(LogTemp, Warning, TEXT("TeamResources is empty or not initialized."));
+       // UE_LOG(LogTemp, Warning, TEXT("TeamResources is empty or not initialized."));
         return; // Early exit if TeamResources is empty or not initialized
     }
     
@@ -121,7 +149,7 @@ void UResourceWidget::UpdateWorkerCountDisplay()
     AResourceGameState* ResourceGameState = GetWorld()->GetGameState<AResourceGameState>();
     if (!ResourceGameState)
     {
-        UE_LOG(LogTemp, Warning, TEXT("ResourceGameState not found on client."));
+        //UE_LOG(LogTemp, Warning, TEXT("ResourceGameState not found on client."));
         return;
     }
         
@@ -130,7 +158,7 @@ void UResourceWidget::UpdateWorkerCountDisplay()
     
     if (TeamResources.IsEmpty())
     {
-        UE_LOG(LogTemp, Warning, TEXT("TeamResources is empty or not initialized."));
+        //UE_LOG(LogTemp, Warning, TEXT("TeamResources is empty or not initialized."));
         return; // Early exit if TeamResources is empty or not initialized
     }
     

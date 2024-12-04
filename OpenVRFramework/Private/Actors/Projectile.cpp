@@ -5,13 +5,15 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Characters/Unit/UnitBase.h"
-#include "Controller/UnitControllerBase.h"
+#include "Controller/AIController/UnitControllerBase.h"
 #include "Net/UnrealNetwork.h"
+#include "Widgets/UnitBaseHealthBar.h"
 
 // Sets default values
 AProjectile::AProjectile()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.TickInterval = TickInterval; 
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	SetRootComponent(Mesh);
 	
@@ -45,6 +47,17 @@ void AProjectile::Init(AActor* TargetActor, AActor* ShootingActor)
 		Damage = ShootingUnit->Attributes->GetAttackDamage();
 		TeamId = ShootingUnit->TeamId;
 		MovementSpeed = ShootingUnit->Attributes->GetProjectileSpeed();
+
+		if (ShootingUnit->IsVisibileEnemy || ShootingUnit->IsMyTeam)
+		{
+
+			SetVisibility(true);
+		}
+		else
+		{
+
+			SetVisibility(false);
+		}
 	}
 }
 
@@ -66,7 +79,20 @@ void AProjectile::InitForAbility(AActor* TargetActor, AActor* ShootingActor)
 	{
 		Damage = ShootingUnit->Attributes->GetAttackDamage();
 		TeamId = ShootingUnit->TeamId;
+
+		if (ShootingUnit->IsVisibileEnemy || ShootingUnit->IsMyTeam)
+		{
+
+			SetVisibility(true);
+		}
+		else
+		{
+
+			SetVisibility(false);
+		}
+		
 	}
+	
 }
 
 // Called when the game starts or when spawned
@@ -100,6 +126,7 @@ void AProjectile::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME(AProjectile, IsBouncingBack);
 	DOREPLIFETIME(AProjectile, IsBouncingNext);
 	DOREPLIFETIME(AProjectile, BouncedBack);
+	DOREPLIFETIME(AProjectile, ProjectileEffect); // Added for Build
 }
 
 // Called every frame
@@ -107,7 +134,7 @@ void AProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	LifeTime += DeltaTime;
-
+	
 	if(RotateMesh)
 	{
 		// Calculate rotation amount based on DeltaTime and RotationSpeed
@@ -169,13 +196,14 @@ void AProjectile::Impact_Implementation(AActor* ImpactTarget)
 	{
 		float NewDamage = ShootingUnit->Attributes->GetAttackDamage() - UnitToHit->Attributes->GetArmor();
 			
-		if(ShootingUnit && ShootingUnit->IsDoingMagicDamage)
+		if(ShootingUnit->IsDoingMagicDamage)
 			NewDamage = ShootingUnit->Attributes->GetAttackDamage() - UnitToHit->Attributes->GetMagicResistance();
 			
 		if(UnitToHit->Attributes->GetShield() <= 0)
-			UnitToHit->SetHealth(UnitToHit->Attributes->GetHealth()-NewDamage);
+			UnitToHit->SetHealth_Implementation(UnitToHit->Attributes->GetHealth()-NewDamage);
 		else
-			UnitToHit->Attributes->SetAttributeShield(UnitToHit->Attributes->GetShield()-NewDamage);
+			UnitToHit->SetShield_Implementation(UnitToHit->Attributes->GetShield()-NewDamage);
+			//UnitToHit->Attributes->SetAttributeShield(UnitToHit->Attributes->GetShield()-NewDamage);
 
 
 		if(UnitToHit && UnitToHit->GetUnitState() == UnitData::Dead)
@@ -186,8 +214,9 @@ void AProjectile::Impact_Implementation(AActor* ImpactTarget)
 			UnitToHit->ApplyInvestmentEffect(ProjectileEffect);
 		}
 		
-		ShootingUnit->LevelData.Experience++;
+		ShootingUnit->IncreaseExperience();
 		UnitToHit->ActivateAbilityByInputID(UnitToHit->DefensiveAbilityID, UnitToHit->DefensiveAbilities);
+
 		SetNextBouncing(ShootingUnit, UnitToHit);
 		SetBackBouncing(ShootingUnit);
 	}			
@@ -203,9 +232,10 @@ void AProjectile::ImpactHeal_Implementation(AActor* ImpactTarget)
 		float NewDamage = ShootingUnit->Attributes->GetAttackDamage() ;
 		
 		if(UnitToHit->Attributes->GetShield() <= 0)
-			UnitToHit->SetHealth(UnitToHit->Attributes->GetHealth()+NewDamage);
+			UnitToHit->SetHealth_Implementation(UnitToHit->Attributes->GetHealth()+NewDamage);
 		else
-			UnitToHit->Attributes->SetAttributeShield(UnitToHit->Attributes->GetShield()+NewDamage);
+			UnitToHit->SetShield_Implementation(UnitToHit->Attributes->GetShield()+NewDamage);
+			//UnitToHit->Attributes->SetAttributeShield(UnitToHit->Attributes->GetShield()+NewDamage);
 
 
 		if(UnitToHit && UnitToHit->GetUnitState() == UnitData::Dead)
@@ -216,7 +246,7 @@ void AProjectile::ImpactHeal_Implementation(AActor* ImpactTarget)
 			UnitToHit->ApplyInvestmentEffect(ProjectileEffect);
 		}
 		
-		ShootingUnit->LevelData.Experience++;
+		ShootingUnit->IncreaseExperience();
 		UnitToHit->ActivateAbilityByInputID(UnitToHit->DefensiveAbilityID, UnitToHit->DefensiveAbilities);
 		SetNextBouncing(ShootingUnit, UnitToHit);
 		SetBackBouncing(ShootingUnit);
@@ -344,10 +374,18 @@ AUnitBase* AProjectile::GetNextUnitInRange(AUnitBase* ShootingUnit, AUnitBase* U
 			{
 				Range = Distance;
 				RUnit = Unit;
+			}else
+			{
+				
 			}
 		}
 	}
 	
 	return RUnit;
+}
+
+void AProjectile::SetVisibility(bool Visible)
+{
+	GetMesh()->SetVisibility(Visible);
 }
 
