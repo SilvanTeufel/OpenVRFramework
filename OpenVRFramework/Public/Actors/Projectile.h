@@ -26,6 +26,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category=RTSUnitTemplate)
 	void InitForAbility(AActor* TargetActor, AActor* ShootingActor);
 
+	UFUNCTION(BlueprintCallable, Category=RTSUnitTemplate)
+	void InitForGrab(FVector VelocityWhileGrabbed, float MLTime);
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RTSUnitTemplate)
+	bool GotGrabed = false;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RTSUnitTemplate)
+	FVector GrabVelocity = FVector(0.f,0.f, 0.f);
 	
 	UPROPERTY(Replicated, BlueprintReadWrite, meta = (DisplayName = "Target", Keywords = "RTSUnitTemplate Target"), Category = RTSUnitTemplate)
 	AActor* Target;

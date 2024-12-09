@@ -20,6 +20,7 @@ APerformanceUnit::APerformanceUnit(const FObjectInitializer& ObjectInitializer):
 void APerformanceUnit::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	/*
 	CheckViewport();
 	CheckTeamVisibility();
 	
@@ -28,7 +29,7 @@ void APerformanceUnit::Tick(float DeltaTime)
 	
 	CheckHealthBarVisibility();
 	CheckTimerVisibility();
-	
+	*/
 }
 
 void APerformanceUnit::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -169,14 +170,17 @@ void APerformanceUnit::CheckTeamVisibility()
 {
 	if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
 	{
-		AControllerBase* ControllerBase = Cast<AControllerBase>(PlayerController);
-		if(ControllerBase->SelectableTeamId == TeamId || ControllerBase->SelectableTeamId == 0)
+
+		if (AControllerBase* ControllerBase = Cast<AControllerBase>(PlayerController))
 		{
-			IsMyTeam = true;
-		}
-		else
-		{
-			IsMyTeam = false;
+			if(ControllerBase->SelectableTeamId == TeamId || ControllerBase->SelectableTeamId == 0)
+			{
+				IsMyTeam = true;
+			}
+			else
+			{
+				IsMyTeam = false;
+			}
 		}
 	}
 }

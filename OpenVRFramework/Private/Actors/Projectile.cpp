@@ -95,6 +95,13 @@ void AProjectile::InitForAbility(AActor* TargetActor, AActor* ShootingActor)
 	
 }
 
+void AProjectile::InitForGrab(FVector VelocityWhileGrabbed, float MLTime)
+{
+	MaxLifeTime = MLTime;
+	GrabVelocity = VelocityWhileGrabbed;
+	GotGrabed = true;
+}
+
 // Called when the game starts or when spawned
 void AProjectile::BeginPlay()
 {
@@ -127,6 +134,8 @@ void AProjectile::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME(AProjectile, IsBouncingNext);
 	DOREPLIFETIME(AProjectile, BouncedBack);
 	DOREPLIFETIME(AProjectile, ProjectileEffect); // Added for Build
+	DOREPLIFETIME(AProjectile, GotGrabed); // Added for Build
+	DOREPLIFETIME(AProjectile, GrabVelocity); // Added for Build
 }
 
 // Called every frame
@@ -134,6 +143,13 @@ void AProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	LifeTime += DeltaTime;
+
+	if (GotGrabed)
+	{
+		AddActorWorldOffset(GrabVelocity);
+		return;
+	}
+
 	
 	if(RotateMesh)
 	{
@@ -147,12 +163,13 @@ void AProjectile::Tick(float DeltaTime)
 			Mesh->AddLocalRotation(NewRotation);
 		}
 	}
-	if(LifeTime > MaxLifeTime)
-	{
-		Destroy(true, false);
-	}else if(LifeTime > MaxLifeTime && FollowTarget)
+	
+	if(LifeTime > MaxLifeTime && FollowTarget)
 	{
 		Impact(Target);
+		Destroy(true, false);
+	}else if(LifeTime > MaxLifeTime)
+	{
 		Destroy(true, false);
 	}else if(Target)
 	{

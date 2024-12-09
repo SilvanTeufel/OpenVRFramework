@@ -38,7 +38,7 @@ void AMeleeWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 void AMeleeWeapon::BeginPlay()
 {
 	Super::BeginPlay();
-	Mesh->OnComponentBeginOverlap.AddDynamic(this, &AMeleeWeapon::OnOverlapBegin);
+	//Mesh->OnComponentBeginOverlap.AddDynamic(this, &AMeleeWeapon::OnOverlapBegin);
 }
 
 // Called every frame
@@ -53,7 +53,7 @@ void AMeleeWeapon::Init(AActor* NewCarrier, int WeaponTeamId)
 	UE_LOG(LogTemp, Warning, TEXT("INitialise Carrier!!!"));
 	Carrier = NewCarrier;
 	TeamId = WeaponTeamId;
-	Mesh->OnComponentBeginOverlap.AddDynamic(this, &AMeleeWeapon::OnOverlapBegin);
+	//Mesh->OnComponentBeginOverlap.AddDynamic(this, &AMeleeWeapon::OnOverlapBegin);
 }
 
 void AMeleeWeapon::OnOverlapBegin_Implementation(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,

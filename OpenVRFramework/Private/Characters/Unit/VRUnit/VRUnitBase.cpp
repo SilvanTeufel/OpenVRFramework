@@ -68,7 +68,6 @@ void AVRUnitBase::BeginPlay()
 	VDevice = Virt::FindDevice();
 	
 	StartInitTimer();
-
 }
 
 void AVRUnitBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -135,12 +134,14 @@ void AVRUnitBase::Tick(float DeltaTime)
 	
 	if (!EnableVirtualizer) CrouchOnZPosition(HMDPosition.Z);
 	else CrouchOnZPosition(VCrouch);
+
 	
 	CalculateHandLocation(DeltaTime);
 	CalculateHandRotation();
 	
 	if (!EnableVirtualizer)
 		SetActorToHMDChange(DeltaTime);
+	
 }
 
 
@@ -174,8 +175,8 @@ void AVRUnitBase::UpdateRotation(FVector Position, FRotator Rotation, float Offs
 
 void AVRUnitBase::CalculateHandLocation(float DeltaTime)
 {
-	float InterpSpeed = 1000.f;
-	if(MovementDirection.Length() > 0) InterpSpeed = 100.f;
+	//float InterpSpeed = 1000.f;
+	//if(MovementDirection.Length() > 0) InterpSpeed = 100.f;
 	FVector ALocation = GetActorLocation();
 
 	FRotator CurrentHMDRotation = HMDRotation;
@@ -208,12 +209,7 @@ void AVRUnitBase::CalculateHandLocation(float DeltaTime)
 	}
 
 	// Log the forward vector angle to the screen
-	if(EnableDebug)
-	if (GEngine && MovementDirection.Length() > 0)
-	{
-		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("LeftHandLocation        ___: %s"), *LeftHandLocation.ToString()));
-	}
-	
+
 }
 
 void AVRUnitBase::CalculateHandRotation()
