@@ -3,6 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Actors/Projectile.h"
+#include "Components/PointLightComponent.h"
 #include "EOS/EOS_PlayerController.h"
 #include "VRController.generated.h"
 
@@ -20,6 +22,8 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	virtual void Tick(float DeltaSeconds) override;
+	
 private:
 	// Timer handle for line trace
 	FTimerHandle LineTraceTimerHandle;
@@ -41,7 +45,12 @@ public:
 	UPROPERTY()
 	AActor* PreviousTargetActor;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
+	AProjectile* GrabbedProjectile;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
+	FVector GrabbedProjectileHandSensitivity = FVector(3.f,3.f,4.f);
+	
 	UPROPERTY()
 	class USpotLightComponent* HighlightLight;
 	
@@ -49,6 +58,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void PerformLineTrace();
 
+	UPROPERTY()
+	UPointLightComponent* CrosshairLight;
+
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void AddOrUpdateCrosshairLight(const FVector& Location, bool bShouldBeVisible);
+
+	UPROPERTY()
+	UBillboardComponent* CrosshairBillboard;
+
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void AddOrUpdateCrosshair(const FVector& Location, bool bShouldBeVisible);
 	// Outline a given actor
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void HighlightActor(AActor* ActorToHighlight, FLinearColor OutlineColor = FLinearColor::Red);
@@ -58,5 +78,9 @@ public:
 	void RemoveHighlightFromActor(AActor* ActorToRemove);
 
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
-	void GrabProjectile();
+	void GrabProjectile( AVRUnitBase* VRUnit);
+	
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void HandleGrabbedProjectile();
+	
 };

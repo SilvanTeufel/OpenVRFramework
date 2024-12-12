@@ -65,13 +65,49 @@ void AProjectile::InitForAbility(AActor* TargetActor, AActor* ShootingActor)
 {
 	Target = TargetActor;
 	Shooter = ShootingActor;
-
+	GotGrabed = false;
+	
 	if(TargetLocation.IsZero())
 		TargetLocation = TargetActor->GetActorLocation();
 
 	
 	if(ShootingActor)
 		ShooterLocation = ShootingActor->GetActorLocation();
+	
+	
+	AUnitBase* ShootingUnit = Cast<AUnitBase>(Shooter);
+	if(ShootingUnit)
+	{
+		Damage = ShootingUnit->Attributes->GetAttackDamage();
+		TeamId = ShootingUnit->TeamId;
+
+		if (ShootingUnit->IsVisibileEnemy || ShootingUnit->IsMyTeam)
+		{
+
+			SetVisibility(true);
+		}
+		else
+		{
+
+			SetVisibility(false);
+		}
+		
+	}
+	
+}
+
+void AProjectile::InitForUnGrab(AActor* TargetActor, AActor* ShootingActor, FVector StartLocation)
+{
+	Target = TargetActor;
+	Shooter = ShootingActor;
+	GotGrabed = false;
+	
+	if(TargetLocation.IsZero())
+		TargetLocation = TargetActor->GetActorLocation();
+
+	
+
+	ShooterLocation = StartLocation;
 	
 	
 	AUnitBase* ShootingUnit = Cast<AUnitBase>(Shooter);
@@ -146,7 +182,7 @@ void AProjectile::Tick(float DeltaTime)
 
 	if (GotGrabed)
 	{
-		AddActorWorldOffset(GrabVelocity);
+		//AddActorWorldOffset(GrabVelocity);
 		return;
 	}
 

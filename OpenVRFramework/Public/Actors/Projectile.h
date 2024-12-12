@@ -27,6 +27,9 @@ public:
 	void InitForAbility(AActor* TargetActor, AActor* ShootingActor);
 
 	UFUNCTION(BlueprintCallable, Category=RTSUnitTemplate)
+	void InitForUnGrab(AActor* TargetActor, AActor* ShootingActor, FVector StartLocation);
+	
+	UFUNCTION(BlueprintCallable, Category=RTSUnitTemplate)
 	void InitForGrab(FVector VelocityWhileGrabbed, float MLTime);
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = RTSUnitTemplate)
