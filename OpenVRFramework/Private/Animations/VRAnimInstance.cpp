@@ -18,9 +18,73 @@ void UVRAnimInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 }
 
-void UVRAnimInstance::NativeUpdateAnimation(float Deltaseconds)
+static FRotator MapRightHandRotationToFabrik(const FRotator& Input, float Diff)
 {
-	Super::NativeUpdateAnimation(Deltaseconds);
+	float baseP = Input.Pitch;
+	float baseY = Input.Yaw;
+	float outR = Input.Roll;
+
+	float outP, outY;
+
+
+	if (baseY <= 0.f)
+	{
+		outP = baseP * -1.5f - 90.f;
+	}
+	else
+	{
+		outP = baseP *  1.5f + 45.f;
+	}
+
+
+	{
+		outY = FMath::Abs(baseY) *  0.75f + 30.f;
+	}
+
+	if (Diff > 50.f)
+	{
+		outP = 120.f;
+		outY = 90.f;
+	}
+
+	return FRotator(outP, outY, outR);
+}
+
+static FRotator MapRLeftHandRotationToFabrik(const FRotator& Input, float Diff)
+{
+	float baseP = Input.Pitch;
+	float baseY = Input.Yaw;
+	float baseR = Input.Roll;
+
+	float outP, outY;
+
+	
+	if (baseR <= 0.f)
+	{
+		outP = baseP * 1.5f -135.f;
+	}
+	else
+	{
+		outP = baseP *  -1.5f + 90.f;
+	}
+
+
+	{
+		outY = FMath::Abs(baseY) *  -0.75f - 30.f;
+	}
+	
+	if (Diff > 50.f)
+	{
+		outP = -30.f;
+		outY = -90.f;
+	}
+	
+	return FRotator(outP, outY, baseR);
+}
+
+void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
+{
+	Super::NativeUpdateAnimation(DeltaSeconds);
 
 	AActor* OwningActor = GetOwningActor();
 
@@ -37,25 +101,37 @@ void UVRAnimInstance::NativeUpdateAnimation(float Deltaseconds)
 			LeftHandPosition = VRUnitBase->LeftHandLocation;
 			RightHandPosition = VRUnitBase->RightHandLocation;
 			
-		
-	
-
-
-		/*
-			if (LeftHandRotation.Yaw != VRUnitBase->LeftHandRotation.Yaw)
+			/*
+			if (GEngine)
 			{
-				//UE_LOG(LogTemp, Warning, TEXT("Yaw: %f"),  VRUnitBase->RightHandRotation.Yaw);
-				//UE_LOG(LogTemp, Warning, TEXT("Yaw: %f"), RightHandRotation.Yaw);
-				UE_LOG(LogTemp, Warning, TEXT("Yaw: %f"), VRUnitBase->LeftHandRotation.Yaw);
-				if (GEngine)
-				{
-					FString DebugMessage = FString::Printf(TEXT("Pitch: %f // %f"), LeftHandRotation.Yaw, VRUnitBase->LeftHandRotation.Yaw);
-					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, DebugMessage);
-				}
+				FString DebugMessage3 = FString::Printf(TEXT("Pitch // Roll // Yaw: %f // %f // %f "), VRUnitBase->LeftHandRotation.Pitch, VRUnitBase->LeftHandRotation.Roll, VRUnitBase->LeftHandRotation.Yaw);
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, DebugMessage3);
 			}*/
-			LeftHandRotation = VRUnitBase->LeftHandRotation;
-			RightHandRotation = VRUnitBase->RightHandRotation;
 
+			RightHandRotation = MapRightHandRotationToFabrik(VRUnitBase->RightHandRotation, HeadZLocation-RightHandPosition.Z);
+			
+			
+			// separately on Pitch, Yaw, Roll:
+			SmoothedRightHandRot = FMath::RInterpTo(
+					SmoothedRightHandRot,       // from (last frame)
+					RightHandRotation,          // to   (new target)
+					DeltaSeconds,               // how much time has passed
+					RotationInterpSpeed         // your speed scalar
+				);
+
+			LeftHandRotation = MapRLeftHandRotationToFabrik(VRUnitBase->LeftHandRotation, HeadZLocation-LeftHandPosition.Z);
+
+			SmoothedLeftHandRot = FMath::RInterpTo(
+					SmoothedLeftHandRot,       // from (last frame)
+					LeftHandRotation,          // to   (new target)
+					DeltaSeconds,               // how much time has passed
+					RotationInterpSpeed         // your speed scalar
+				);
+			/*
+			        UE_LOG(LogTemp, Warning, TEXT(
+                        "Right Hand Rotation -> Roll: %6.2f | Pitch: %6.2f | Yaw: %6.2f"
+                    ), RightHandRotation.Roll, RightHandRotation.Pitch, RightHandRotation.Yaw);
+			*/
 			Crouch = VRUnitBase->CrouchedNormedZ;
 			Velocity = VRUnitBase->NormedVelocity;
 			VRotation = VRUnitBase->VRotation;

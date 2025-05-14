@@ -18,7 +18,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 	
 	UFUNCTION()
-	virtual void NativeUpdateAnimation(float Deltaseconds) override;
+	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 	
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
 	FVector LeftHandPosition;
@@ -30,7 +30,20 @@ public:
 	FRotator LeftHandRotation;
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	FRotator SmoothedLeftHandRot;
+	
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
 	FRotator RightHandRotation;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	FRotator SmoothedRightHandRot;
+
+	// tweakable interp speed (higher = snappier; lower = softer)
+	UPROPERTY(EditAnywhere, Category="VR|Smoothing")
+	float RotationInterpSpeed = 12.f;
+	
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	float CalculatedPitchRotation;
 	
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
 	float HeadZLocation;
@@ -61,18 +74,5 @@ public:
 	
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
 	float Velocity;
-	
-	
-	
-	// Accumulated unwrapped Yaw value
-	float UnwrappedYaw = 0.0f;
 
-	// Previous raw Yaw value
-	float PreviousRawYaw = 0.0f;
-
-	// Initial unwrapped Yaw value (for normalization reference)
-	float InitialUnwrappedYaw = 0.0f;
-
-	// Flag to check if this is the first update
-	bool bFirstUpdate = true;
 };

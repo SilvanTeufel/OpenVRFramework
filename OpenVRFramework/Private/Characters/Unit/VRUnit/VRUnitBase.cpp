@@ -249,7 +249,6 @@ void AVRUnitBase::CalculateHandRotation()
 		
 		RightHandRotation = CurrentRightHandRotation;
 
-	
 		// Optional: Draw debug sphere to visualize rotation if needed
 		
 		if(EnableDebug)
