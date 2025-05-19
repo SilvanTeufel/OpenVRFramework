@@ -107,8 +107,19 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 				FString DebugMessage3 = FString::Printf(TEXT("Pitch // Roll // Yaw: %f // %f // %f "), VRUnitBase->LeftHandRotation.Pitch, VRUnitBase->LeftHandRotation.Roll, VRUnitBase->LeftHandRotation.Yaw);
 				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, DebugMessage3);
 			}*/
-
-			RightHandRotation = MapRightHandRotationToFabrik(VRUnitBase->RightHandRotation, HeadZLocation-RightHandPosition.Z);
+			float RightDiff;
+			float LeftDiff;
+			if (!VRUnitBase->EnableVirtualizer)
+			{
+				RightDiff = HeadZLocation-RightHandPosition.Z;
+				LeftDiff = HeadZLocation-LeftHandPosition.Z;
+			}else
+			{
+				RightDiff = HeadZLocation-RightHandPosition.Z+25.f;
+				LeftDiff = HeadZLocation-LeftHandPosition.Z+25.f;
+			}
+			
+			RightHandRotation = MapRightHandRotationToFabrik(VRUnitBase->RightHandRotation, RightDiff);
 			
 			
 			// separately on Pitch, Yaw, Roll:
@@ -119,7 +130,7 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 					RotationInterpSpeed         // your speed scalar
 				);
 
-			LeftHandRotation = MapRLeftHandRotationToFabrik(VRUnitBase->LeftHandRotation, HeadZLocation-LeftHandPosition.Z);
+			LeftHandRotation = MapRLeftHandRotationToFabrik(VRUnitBase->LeftHandRotation, LeftDiff);
 
 			SmoothedLeftHandRot = FMath::RInterpTo(
 					SmoothedLeftHandRot,       // from (last frame)
