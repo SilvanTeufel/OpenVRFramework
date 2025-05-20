@@ -55,6 +55,9 @@ public:
 	FVector HeadLocation;
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	FVector WorldHeadLocation;
+	
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
 	bool IsVirtualizerEnabled = false;
 	
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)

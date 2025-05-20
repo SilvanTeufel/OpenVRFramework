@@ -58,6 +58,7 @@ void AVRUnitBase::BeginPlay()
 {
 	Super::BeginPlay();
 	// Check if VDevice is valid before calling Close()
+	
 	if (VDevice)
 	{
 		VDevice->Close();
@@ -75,6 +76,7 @@ void AVRUnitBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 
 	// Check if VDevice is valid before calling Close()
+	
 	if (VDevice)
 	{
 		VDevice->Close();
@@ -149,6 +151,8 @@ void AVRUnitBase::SetRotationAndPosition()
 {
 	UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HMDRotation, HMDPosition);
 	Camera->SetWorldRotation(HMDRotation);
+	//FVector VROriginLocation = VROrigin->GetRelativeLocation();
+	VROrigin->SetRelativeLocation(FVector(HMDPosition.X, HMDPosition.Y, HMDPosition.Z-StandingZ-60.f)); // HMDPosition.Z-StandingZ-90.f
 }
 
 void AVRUnitBase::UpdateRotation(FVector Position, FRotator Rotation, float Offset)
@@ -376,7 +380,9 @@ void AVRUnitBase::CrouchOnZPosition(float CurrentPosition)
 		CurrentPosition = StandingZ;
 
 	HeadZLocation = CurrentPosition;
-	// HMDPosition.Z or 
+	// HMDPosition.Z or
+	UE_LOG(LogTemp, Verbose, TEXT("[Crouch] Incoming Z: %f | StandingZ: %f | KneelingZ: %f"),
+	CurrentPosition, StandingZ, KneelingZ);
 	if (StandingZ != KneelingZ)  // To avoid division by zero
 	{
 		float ExponentialScale = FMath::Exp(-ScaleCapsuleIfCrouched);
@@ -611,6 +617,7 @@ void AVRUnitBase::DecreaseAperture(float Amount, float Min, float BlendWeight, f
 
 void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 {
+
 	
 	if(EnableDebug)
 	{
@@ -667,6 +674,8 @@ void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 
 void AVRUnitBase::HandleHapticData(int32 selection, int32 value)
 {
+	
+	
 	if(EnableDebug)
     if (VDevice == nullptr)
     {

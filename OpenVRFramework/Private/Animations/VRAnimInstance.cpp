@@ -15,7 +15,7 @@ void UVRAnimInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME(UVRAnimInstance, LeftHandRotation);
 	DOREPLIFETIME(UVRAnimInstance, RightHandRotation);
 	DOREPLIFETIME(UVRAnimInstance, HeadRotation);
-
+	DOREPLIFETIME(UVRAnimInstance, WorldHeadLocation);
 }
 
 static FRotator MapRightHandRotationToFabrik(const FRotator& Input, float Diff)
@@ -97,11 +97,31 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			HeadZLocation = VRUnitBase->HeadZLocation;
 			HeadRotation = VRUnitBase->HMDRotation;
 			HeadLocation = VRUnitBase->HMDPosition;
+			WorldHeadLocation = VRUnitBase->HMDPosition + VRUnitBase->GetActorLocation();
+			WorldHeadLocation.X = VRUnitBase->HMDPosition.X*1.5 + VRUnitBase->GetActorLocation().X;
 			IsVirtualizerEnabled = VRUnitBase->EnableVirtualizer;
 			LeftHandPosition = VRUnitBase->LeftHandLocation;
 			RightHandPosition = VRUnitBase->RightHandLocation;
-			
+
+		
 			/*
+			if (GEngine)
+			{
+				// Print X, Y and Z in one go
+				FString DebugMessage = FString::Printf(
+					TEXT("HeadLocation: X = %f, Y = %f, Z = %f"),
+					HeadLocation.X,
+					HeadLocation.Y,
+					HeadLocation.Z
+				);
+				GEngine->AddOnScreenDebugMessage(
+					 -1,
+					 5.0f,
+					 FColor::Green,
+					DebugMessage
+				);
+			}
+		
 			if (GEngine)
 			{
 				FString DebugMessage3 = FString::Printf(TEXT("Pitch // Roll // Yaw: %f // %f // %f "), VRUnitBase->LeftHandRotation.Pitch, VRUnitBase->LeftHandRotation.Roll, VRUnitBase->LeftHandRotation.Yaw);
@@ -144,6 +164,12 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
                     ), RightHandRotation.Roll, RightHandRotation.Pitch, RightHandRotation.Yaw);
 			*/
 			Crouch = VRUnitBase->CrouchedNormedZ;
+			/*
+			if (GEngine)
+			{
+				FString DebugMessage3 = FString::Printf(TEXT("Crouch %f "), Crouch);
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, DebugMessage3);
+			}*/
 			Velocity = VRUnitBase->NormedVelocity;
 			VRotation = VRUnitBase->VRotation;
 			VRotationOffset = VRUnitBase->VRotationOffset;
