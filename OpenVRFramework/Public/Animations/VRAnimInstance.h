@@ -38,6 +38,8 @@ public:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
 	FRotator SmoothedRightHandRot;
 
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = OpenVRFramework)
+	FTransform RightHandTargetTM;
 	// tweakable interp speed (higher = snappier; lower = softer)
 	UPROPERTY(EditAnywhere, Category="VR|Smoothing")
 	float RotationInterpSpeed = 12.f;

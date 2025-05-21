@@ -2,7 +2,8 @@
 
 
 #include "Animations/VRAnimInstance.h"
-
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/PoseableMeshComponent.h"
 #include "Characters/Unit/VRUnit/VRUnitBase.h"
 #include "Net/UnrealNetwork.h"
 
@@ -104,10 +105,9 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			HeadLocation.X -= VRUnitBase->OriginCalibrationOffset.X;
 			HeadLocation.Y -= HeadLocation.Y-VRUnitBase->OriginCalibrationOffset.Y;
 			HeadLocation += ForwardDirection*5.f;
-			WorldHeadLocation = VRUnitBase->HMDPosition + VRUnitBase->GetActorLocation();
-			WorldHeadLocation.X = VRUnitBase->HMDPosition.X*1.5 + VRUnitBase->GetActorLocation().X;
-			WorldHeadLocation.X -= VRUnitBase->OriginCalibrationOffset.X;
-			WorldHeadLocation.Y -= VRUnitBase->OriginCalibrationOffset.Y;
+			WorldHeadLocation.Z = VRUnitBase->HMDPosition.Z + VRUnitBase->GetActorLocation().Z;
+			WorldHeadLocation.X = (VRUnitBase->HMDPosition.X-VRUnitBase->OriginCalibrationOffset.X)*3.f + VRUnitBase->GetActorLocation().X;
+			WorldHeadLocation.Y = (VRUnitBase->HMDPosition.Y-VRUnitBase->OriginCalibrationOffset.Y)*2.75f + VRUnitBase->GetActorLocation().Y;;
 			WorldHeadLocation += ForwardDirection*5.f;
 			IsVirtualizerEnabled = VRUnitBase->EnableVirtualizer;
 			LeftHandPosition = VRUnitBase->LeftHandLocation;
@@ -131,23 +131,52 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 					DebugMessage
 				);
 			}
-		
-			if (GEngine)
-			{
-				FString DebugMessage3 = FString::Printf(TEXT("Pitch // Roll // Yaw: %f // %f // %f "), VRUnitBase->LeftHandRotation.Pitch, VRUnitBase->LeftHandRotation.Roll, VRUnitBase->LeftHandRotation.Yaw);
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, DebugMessage3);
-			}*/
-			//float RightDiff;
-			//float LeftDiff;
-			//if (!VRUnitBase->EnableVirtualizer)
-			//{
+			*/
+
+			RightHandRotation = VRUnitBase->RightHandRotation;
+
+
+			const FTransform MCtoWorld = VRUnitBase->RightMotionController->GetComponentTransform();
+
+			// 2) mesh‐local ← world
+			const FTransform MeshWorldToLocal = GetSkelMeshComponent()->GetComponentTransform().Inverse();
+
+			// 3) controller → world → mesh‐local
+			FTransform DesiredBoneLocal = MeshWorldToLocal * MCtoWorld;
+
+			// 4) extract rotation and log it
+			FQuat RawQuat = DesiredBoneLocal.GetRotation();
+			UE_LOG(LogTemp, Warning,
+				TEXT("RawHand Rot: P=%5.1f  Y=%5.1f  R=%5.1f"),
+				RawQuat.Rotator().Pitch,
+				RawQuat.Rotator().Yaw,
+				RawQuat.Rotator().Roll);
+
+			// 2) Define your “flip” (tweak these values as needed)
+			static const FRotator FlipRotator( /*Pitch*/ 0.f, /*Yaw*/ 200.f, /*Roll*/-180.f );
+			FQuat FlipQuat = FlipRotator.Quaternion();
+
+			// 3) Two candidates: flip-before or flip-after
+			FQuat CandidateA = FlipQuat * RawQuat;   // apply flip first
+			FQuat CandidateB = RawQuat * FlipQuat;   // apply flip last
+
+			// 4) Log them side by side so you can see which tracks your controller
+			UE_LOG(LogTemp, Warning,
+				TEXT("Raw: P=%5.1f  Y=%5.1f  R=%5.1f | A: P=%5.1f  Y=%5.1f  R=%5.1f | B: P=%5.1f  Y=%5.1f  R=%5.1f"),
+				RawQuat.Rotator().Pitch,   RawQuat.Rotator().Yaw,   RawQuat.Rotator().Roll,
+				CandidateA.Rotator().Pitch, CandidateA.Rotator().Yaw, CandidateA.Rotator().Roll,
+				CandidateB.Rotator().Pitch, CandidateB.Rotator().Yaw, CandidateB.Rotator().Roll
+			);
+
+			// 5) Once you see which candidate “A” or “B” moves in sync with your physical controller,
+			//    pick that one for your AnimGraph
+			RightHandTargetTM.SetRotation(CandidateB); 
+
+
+			
 				float RightDiff = HeadZLocation-RightHandPosition.Z;
 				float LeftDiff = HeadZLocation-LeftHandPosition.Z;
-			//}else
-			//{
-				//RightDiff = HeadZLocation-RightHandPosition.Z+25.f;
-				//LeftDiff = HeadZLocation-LeftHandPosition.Z+25.f;
-			//}
+	
 			
 			RightHandRotation = MapRightHandRotationToFabrik(VRUnitBase->RightHandRotation, RightDiff);
 			
@@ -159,7 +188,10 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 					DeltaSeconds,               // how much time has passed
 					RotationInterpSpeed         // your speed scalar
 				);
+		
+			
 
+			
 			LeftHandRotation = MapRLeftHandRotationToFabrik(VRUnitBase->LeftHandRotation, LeftDiff);
 
 			SmoothedLeftHandRot = FMath::RInterpTo(
