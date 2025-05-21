@@ -96,9 +96,19 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		{
 			HeadZLocation = VRUnitBase->HeadZLocation;
 			HeadRotation = VRUnitBase->HMDRotation;
+			FVector ForwardDirection = FRotationMatrix(VRUnitBase->HMDRotation).GetScaledAxis(EAxis::X);
+
+			// Normalize the movement direction to ensure consistent movement speed
+			ForwardDirection.Normalize();
 			HeadLocation = VRUnitBase->HMDPosition;
+			HeadLocation.X -= VRUnitBase->OriginCalibrationOffset.X;
+			HeadLocation.Y -= HeadLocation.Y-VRUnitBase->OriginCalibrationOffset.Y;
+			HeadLocation += ForwardDirection*5.f;
 			WorldHeadLocation = VRUnitBase->HMDPosition + VRUnitBase->GetActorLocation();
 			WorldHeadLocation.X = VRUnitBase->HMDPosition.X*1.5 + VRUnitBase->GetActorLocation().X;
+			WorldHeadLocation.X -= VRUnitBase->OriginCalibrationOffset.X;
+			WorldHeadLocation.Y -= VRUnitBase->OriginCalibrationOffset.Y;
+			WorldHeadLocation += ForwardDirection*5.f;
 			IsVirtualizerEnabled = VRUnitBase->EnableVirtualizer;
 			LeftHandPosition = VRUnitBase->LeftHandLocation;
 			RightHandPosition = VRUnitBase->RightHandLocation;
@@ -127,17 +137,17 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 				FString DebugMessage3 = FString::Printf(TEXT("Pitch // Roll // Yaw: %f // %f // %f "), VRUnitBase->LeftHandRotation.Pitch, VRUnitBase->LeftHandRotation.Roll, VRUnitBase->LeftHandRotation.Yaw);
 				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, DebugMessage3);
 			}*/
-			float RightDiff;
-			float LeftDiff;
-			if (!VRUnitBase->EnableVirtualizer)
-			{
-				RightDiff = HeadZLocation-RightHandPosition.Z;
-				LeftDiff = HeadZLocation-LeftHandPosition.Z;
-			}else
-			{
-				RightDiff = HeadZLocation-RightHandPosition.Z+25.f;
-				LeftDiff = HeadZLocation-LeftHandPosition.Z+25.f;
-			}
+			//float RightDiff;
+			//float LeftDiff;
+			//if (!VRUnitBase->EnableVirtualizer)
+			//{
+				float RightDiff = HeadZLocation-RightHandPosition.Z;
+				float LeftDiff = HeadZLocation-LeftHandPosition.Z;
+			//}else
+			//{
+				//RightDiff = HeadZLocation-RightHandPosition.Z+25.f;
+				//LeftDiff = HeadZLocation-LeftHandPosition.Z+25.f;
+			//}
 			
 			RightHandRotation = MapRightHandRotationToFabrik(VRUnitBase->RightHandRotation, RightDiff);
 			

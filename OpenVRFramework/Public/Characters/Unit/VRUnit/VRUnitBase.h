@@ -62,6 +62,9 @@ public:
 	FVector HMDPosition;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
+	FVector OriginCalibrationOffset;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	FRotator HMDRotation;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))

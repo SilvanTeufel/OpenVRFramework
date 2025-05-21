@@ -152,7 +152,9 @@ void AVRUnitBase::SetRotationAndPosition()
 	UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HMDRotation, HMDPosition);
 	Camera->SetWorldRotation(HMDRotation);
 	//FVector VROriginLocation = VROrigin->GetRelativeLocation();
-	VROrigin->SetRelativeLocation(FVector(HMDPosition.X, HMDPosition.Y, HMDPosition.Z-StandingZ-60.f)); // HMDPosition.Z-StandingZ-90.f
+	UE_LOG(LogTemp, Warning, TEXT("OriginCalibrationOffset: %s"), *OriginCalibrationOffset.ToString());
+	FVector NewLocation = FVector(HMDPosition.X-OriginCalibrationOffset.X, HMDPosition.Y-OriginCalibrationOffset.Y, HMDPosition.Z-StandingZ-90.f);
+	VROrigin->SetRelativeLocation(NewLocation); // HMDPosition.Z-StandingZ-90.f
 }
 
 void AVRUnitBase::UpdateRotation(FVector Position, FRotator Rotation, float Offset)
@@ -193,7 +195,7 @@ void AVRUnitBase::CalculateHandLocation(float DeltaTime)
 
 	// Normalize the movement direction to ensure consistent movement speed
 	ForwardDirection.Normalize();
-	
+	/*
 	if (LeftMotionController)
 	{
 		FVector CurrentLeftHandPosition = LeftMotionController->GetComponentLocation();
@@ -211,7 +213,27 @@ void AVRUnitBase::CalculateHandLocation(float DeltaTime)
 		RightHandLocation = Camera->GetComponentLocation() + VHeadToRHand - FVector(ALocation.X, ALocation.Y, -15.f) + ForwardDirection*5.f;
 		if(EnableDebug) DrawDebugSphere(GetWorld(), RightHandLocation, 5.0f, 12, FColor::Blue, false, -1.0f, 0, 1.0f);
 	}
+	*/
+	
+	if (LeftMotionController)
+	{
+		FVector CurrentLeftHandPosition = LeftMotionController->GetComponentLocation();
+		FVector VHeadToLHand = CurrentLeftHandPosition-HMDPosition;
+		VHeadToLHand.Z += StandingZ;
+		LeftHandLocation = VHeadToLHand + ForwardDirection*5.f;
+		if(EnableDebug) DrawDebugSphere(GetWorld(), LeftHandLocation, 5.0f, 12, FColor::Red, false, -1.0f, 0, 1.0f);
 
+	}
+
+
+	if (RightMotionController)
+	{
+		FVector CurrentRightHandPosition = RightMotionController->GetComponentLocation();
+		FVector VHeadToRHand = CurrentRightHandPosition-HMDPosition;
+		VHeadToRHand.Z += StandingZ;
+		RightHandLocation = VHeadToRHand + ForwardDirection*5.f;
+		if(EnableDebug) DrawDebugSphere(GetWorld(), RightHandLocation, 5.0f, 12, FColor::Blue, false, -1.0f, 0, 1.0f);
+	}
 	// Log the forward vector angle to the screen
 
 }
@@ -619,36 +641,41 @@ void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 {
 
 	
-	if(EnableDebug)
-	{
+
 		if (VDevice == nullptr)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("No Device Found!"));
-			UE_LOG(LogTemp, Warning, TEXT("========================================"));
+			if(EnableDebug)UE_LOG(LogTemp, Warning, TEXT("No Device Found!"));
+			if(EnableDebug)UE_LOG(LogTemp, Warning, TEXT("========================================"));
+
 			return;
 		}
 
-		const VirtDeviceInfo& info = VDevice->GetDeviceInfo();
+		if(EnableDebug)
+		{
+			const VirtDeviceInfo& info = VDevice->GetDeviceInfo();
 
-		UE_LOG(LogTemp, Warning, TEXT("Device Found: %ls"), info.ProductName);
-		UE_LOG(LogTemp, Warning, TEXT("Firmware Version: %d.%d"), info.MajorVersion, info.MinorVersion);
-		UE_LOG(LogTemp, Warning, TEXT("========================================\n"));
-		
+			UE_LOG(LogTemp, Warning, TEXT("Device Found: %ls"), info.ProductName);
+			UE_LOG(LogTemp, Warning, TEXT("Firmware Version: %d.%d"), info.MajorVersion, info.MinorVersion);
+			UE_LOG(LogTemp, Warning, TEXT("========================================\n"));
+		}
 
 		if (!VDevice->Open())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Unable to connect to Virtualizer!"));
-			UE_LOG(LogTemp, Warning, TEXT("========================================"));
+			if(EnableDebug)UE_LOG(LogTemp, Warning, TEXT("Unable to connect to Virtualizer!"));
+			if(EnableDebug)UE_LOG(LogTemp, Warning, TEXT("========================================"));
+
 			return;
 		}
-	
-		UE_LOG(LogTemp, Warning, TEXT("========================================"));
-		UE_LOG(LogTemp, Warning, TEXT("Ring Height:        %10.2fcm"), VDevice->GetPlayerHeight());
-		UE_LOG(LogTemp, Warning, TEXT("Player Orientation: %10.2f°"), VDevice->GetPlayerOrientation() * 360);
-		UE_LOG(LogTemp, Warning, TEXT("Movement Speed:     %10.2fm/s"), VDevice->GetMovementSpeed());
-		UE_LOG(LogTemp, Warning, TEXT("Movement Direction: %10.2f°"), VDevice->GetMovementDirection() * 180);
-		UE_LOG(LogTemp, Warning, TEXT("========================================"));
-	}
+
+		if(EnableDebug)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("========================================"));
+			UE_LOG(LogTemp, Warning, TEXT("Ring Height:        %10.2fcm"), VDevice->GetPlayerHeight());
+			UE_LOG(LogTemp, Warning, TEXT("Player Orientation: %10.2f°"), VDevice->GetPlayerOrientation() * 360);
+			UE_LOG(LogTemp, Warning, TEXT("Movement Speed:     %10.2fm/s"), VDevice->GetMovementSpeed());
+			UE_LOG(LogTemp, Warning, TEXT("Movement Direction: %10.2f°"), VDevice->GetMovementDirection() * 180);
+			UE_LOG(LogTemp, Warning, TEXT("========================================"));
+		}
 
 
 
@@ -661,6 +688,13 @@ void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 		VRotationOffset = HMDRotation.Yaw-VDevice->GetPlayerOrientation()* 360.0f;
 		StandingZ = VCrouch+25.f;
 		KneelingZ = StandingZ/2.f;
+		
+		//FVector ForwardDirection = FRotationMatrix(HMDRotation).GetScaledAxis(EAxis::X);
+
+		// Normalize the movement direction to ensure consistent movement speed
+		//ForwardDirection.Normalize();
+		OriginCalibrationOffset = HMDPosition; //-ForwardDirection*10.f;
+		
 		VInitialised = true;
 
 		UE_LOG(LogTemp, Warning, TEXT("StandingZ: %f"), StandingZ);
@@ -675,20 +709,19 @@ void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 void AVRUnitBase::HandleHapticData(int32 selection, int32 value)
 {
 	
-	
-	if(EnableDebug)
-    if (VDevice == nullptr)
+		
+    if (VDevice == nullptr || !VDevice)
     {
-        UE_LOG(LogTemp, Warning, TEXT("No Device Found!"));
+        if(EnableDebug) UE_LOG(LogTemp, Warning, TEXT("No Device Found!"));
         return;
     }
-
-	if(EnableDebug)
+	
     if (!VDevice->Open())
     {
-        UE_LOG(LogTemp, Warning, TEXT("Unable to connect to Virtualizer!"));
+        if(EnableDebug) UE_LOG(LogTemp, Warning, TEXT("Unable to connect to Virtualizer!"));
         return;
     }
+	
 
 	if(EnableDebug)
 	{
