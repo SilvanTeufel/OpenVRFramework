@@ -133,73 +133,82 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			}
 			*/
 
-			RightHandRotation = VRUnitBase->RightHandRotation;
-
-
-			const FTransform MCtoWorld = VRUnitBase->RightMotionController->GetComponentTransform();
+			//RightHandRotation = VRUnitBase->RightHandRotation;
 
 			// 2) mesh‐local ← world
 			const FTransform MeshWorldToLocal = GetSkelMeshComponent()->GetComponentTransform().Inverse();
 
-			// 3) controller → world → mesh‐local
-			FTransform DesiredBoneLocal = MeshWorldToLocal * MCtoWorld;
+			
+			if (VRUnitBase->RightMotionController)
+			{
+				const FTransform MCtoWorld = VRUnitBase->RightMotionController->GetComponentTransform();
 
-			// 4) extract rotation and log it
-			FQuat RawQuat = DesiredBoneLocal.GetRotation();
-			UE_LOG(LogTemp, Warning,
-				TEXT("RawHand Rot: P=%5.1f  Y=%5.1f  R=%5.1f"),
-				RawQuat.Rotator().Pitch,
-				RawQuat.Rotator().Yaw,
-				RawQuat.Rotator().Roll);
+				// 2) mesh‐local ← world
+				//const FTransform MeshWorldToLocal = GetSkelMeshComponent()->GetComponentTransform().Inverse();
 
-			// 2) Define your “flip” (tweak these values as needed)
-			static const FRotator FlipRotator( /*Pitch*/ 0.f, /*Yaw*/ 200.f, /*Roll*/-180.f );
-			FQuat FlipQuat = FlipRotator.Quaternion();
+				// 3) controller → world → mesh‐local
+				FTransform DesiredBoneLocal = MeshWorldToLocal * MCtoWorld;
 
-			// 3) Two candidates: flip-before or flip-after
-			FQuat CandidateA = FlipQuat * RawQuat;   // apply flip first
-			FQuat CandidateB = RawQuat * FlipQuat;   // apply flip last
+				// 4) extract rotation and log it
+				FQuat RawQuat = DesiredBoneLocal.GetRotation();
+				UE_LOG(LogTemp, Warning,
+					TEXT("RawHand Rot: P=%5.1f  Y=%5.1f  R=%5.1f"),
+					RawQuat.Rotator().Pitch,
+					RawQuat.Rotator().Yaw,
+					RawQuat.Rotator().Roll);
 
-			// 4) Log them side by side so you can see which tracks your controller
-			UE_LOG(LogTemp, Warning,
-				TEXT("Raw: P=%5.1f  Y=%5.1f  R=%5.1f | A: P=%5.1f  Y=%5.1f  R=%5.1f | B: P=%5.1f  Y=%5.1f  R=%5.1f"),
-				RawQuat.Rotator().Pitch,   RawQuat.Rotator().Yaw,   RawQuat.Rotator().Roll,
-				CandidateA.Rotator().Pitch, CandidateA.Rotator().Yaw, CandidateA.Rotator().Roll,
-				CandidateB.Rotator().Pitch, CandidateB.Rotator().Yaw, CandidateB.Rotator().Roll
-			);
-
-			// 5) Once you see which candidate “A” or “B” moves in sync with your physical controller,
-			//    pick that one for your AnimGraph
-			RightHandTargetTM.SetRotation(CandidateB); 
-
+				// 2) Define your “flip” (tweak these values as needed)
+				static const FRotator FlipRotator( /*Pitch*/ -220.f, /*Yaw*/ 260.f, /*Roll*/-260.f );
+				FQuat FlipQuat = FlipRotator.Quaternion();
+				FQuat CandidateB = RawQuat * FlipQuat;   // apply flip last
+			
+				RightHandTargetTM.SetRotation(CandidateB); 
 
 			
-				float RightDiff = HeadZLocation-RightHandPosition.Z;
-				float LeftDiff = HeadZLocation-LeftHandPosition.Z;
+			
+				RightHandRotation = RightHandTargetTM.Rotator();//MapRightHandRotationToFabrik(VRUnitBase->RightHandRotation, RightDiff);
+			
+			
+				// separately on Pitch, Yaw, Roll:
+				SmoothedRightHandRot = FMath::RInterpTo(
+						SmoothedRightHandRot,       // from (last frame)
+						RightHandRotation,          // to   (new target)
+						DeltaSeconds,               // how much time has passed
+						RotationInterpSpeed         // your speed scalar
+					);
+			}
+
+
+			if (VRUnitBase->LeftMotionController)
+			{
+				const FTransform MCtoWorldL = VRUnitBase->LeftMotionController->GetComponentTransform();
+				FTransform DesiredL = GetSkelMeshComponent()->GetComponentTransform()*MCtoWorldL;
+				FQuat RawL         = DesiredL.GetRotation();
+
+				// the left bone is often mirrored in yaw relative to the right,
+				// so you can usually reuse your right‐hand Flip but swap the sign on Yaw:
+				static const FRotator FlipL(  /*Pitch*/ -220.f, /*Yaw*/ 260.f, /*Roll*/-260.f );
+				FQuat FlipQuatL = FlipL.Quaternion();
+
+				// try both orders if you’re not 100% sure:
+				// FQuat CandidateA = FlipQuatL * RawL;
+				// FQuat CandidateB = RawL * FlipQuatL;
+				// LeftHandTargetTM.SetRotation(CandidateA);
+				LeftHandTargetTM.SetRotation( RawL*FlipQuatL ); // *FlipQuatL
+			
+				LeftHandRotation = LeftHandTargetTM.Rotator()*-1;
+				//LeftHandRotation.Roll = LeftHandTargetTM.Rotator().Roll-200.f;//MapRLeftHandRotationToFabrik(VRUnitBase->LeftHandRotation, LeftDiff);
+				//LeftHandRotation.Pitch = LeftHandTargetTM.Rotator().Pitch+0.f;
+				LeftHandRotation.Yaw = LeftHandTargetTM.Rotator().Yaw-180.f;
 	
-			
-			RightHandRotation = MapRightHandRotationToFabrik(VRUnitBase->RightHandRotation, RightDiff);
-			
-			
-			// separately on Pitch, Yaw, Roll:
-			SmoothedRightHandRot = FMath::RInterpTo(
-					SmoothedRightHandRot,       // from (last frame)
-					RightHandRotation,          // to   (new target)
-					DeltaSeconds,               // how much time has passed
-					RotationInterpSpeed         // your speed scalar
-				);
-		
-			
-
-			
-			LeftHandRotation = MapRLeftHandRotationToFabrik(VRUnitBase->LeftHandRotation, LeftDiff);
-
-			SmoothedLeftHandRot = FMath::RInterpTo(
-					SmoothedLeftHandRot,       // from (last frame)
-					LeftHandRotation,          // to   (new target)
-					DeltaSeconds,               // how much time has passed
-					RotationInterpSpeed         // your speed scalar
-				);
+				
+				SmoothedLeftHandRot = FMath::RInterpTo(
+						SmoothedLeftHandRot,       // from (last frame)
+						LeftHandRotation,          // to   (new target)
+						DeltaSeconds,               // how much time has passed
+						RotationInterpSpeed         // your speed scalar
+					);
+			}
 			/*
 			        UE_LOG(LogTemp, Warning, TEXT(
                         "Right Hand Rotation -> Roll: %6.2f | Pitch: %6.2f | Yaw: %6.2f"
