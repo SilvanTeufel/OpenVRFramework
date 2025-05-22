@@ -152,7 +152,7 @@ void AVRUnitBase::SetRotationAndPosition()
 	UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HMDRotation, HMDPosition);
 	Camera->SetWorldRotation(HMDRotation);
 	//FVector VROriginLocation = VROrigin->GetRelativeLocation();
-	UE_LOG(LogTemp, Warning, TEXT("OriginCalibrationOffset: %s"), *OriginCalibrationOffset.ToString());
+	//UE_LOG(LogTemp, Warning, TEXT("OriginCalibrationOffset: %s"), *OriginCalibrationOffset.ToString());
 	FVector NewLocation = FVector((HMDPosition.X-OriginCalibrationOffset.X)*1.6f, (HMDPosition.Y-OriginCalibrationOffset.Y)*1.5f, HMDPosition.Z-OriginCalibrationOffset.Z-KneelingZ-10.f);
 	VROrigin->SetRelativeLocation(NewLocation); // HMDPosition.Z-StandingZ-90.f
 }
@@ -682,14 +682,21 @@ void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 	VSpeed = VDevice->GetMovementSpeed();
 	VCrouch = (VDevice->GetPlayerHeight()-VCrouchPosition)*VCrouchMultiplier+VCrouchOffset;
 	
+	
 	if(!VInitialised)
 	{
+		//UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
 		UE_LOG(LogTemp, Warning, TEXT("->Rotation Offset Initialised<-"));
 		VRotationOffset = HMDRotation.Yaw-VDevice->GetPlayerOrientation()* 360.0f;
 		StandingZ = VCrouch+25.f;
 		KneelingZ = StandingZ/2.f;
 		
 		OriginCalibrationOffset = HMDPosition; //-ForwardDirection*10.f;
+
+		CalibLeftOffset = LeftMotionController->GetComponentRotation();
+		CalibRightOffset = RightMotionController->GetComponentRotation();
+		//CalibLeftOffset = LeftMotionController->GetComponentTransform().GetRelativeTransform(GetMesh()->GetComponentTransform());
+		//CalibRightOffset = RightMotionController->GetComponentTransform().GetRelativeTransform(GetMesh()->GetComponentTransform());
 		
 		VInitialised = true;
 

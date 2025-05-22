@@ -19,70 +19,6 @@ void UVRAnimInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME(UVRAnimInstance, WorldHeadLocation);
 }
 
-static FRotator MapRightHandRotationToFabrik(const FRotator& Input, float Diff)
-{
-	float baseP = Input.Pitch;
-	float baseY = Input.Yaw;
-	float outR = Input.Roll;
-
-	float outP, outY;
-
-
-	if (baseY <= 0.f)
-	{
-		outP = baseP * -1.5f - 90.f;
-	}
-	else
-	{
-		outP = baseP *  1.5f + 45.f;
-	}
-
-
-	{
-		outY = FMath::Abs(baseY) *  0.75f + 30.f;
-	}
-
-	if (Diff > 50.f)
-	{
-		outP = 120.f;
-		outY = 90.f;
-	}
-
-	return FRotator(outP, outY, outR);
-}
-
-static FRotator MapRLeftHandRotationToFabrik(const FRotator& Input, float Diff)
-{
-	float baseP = Input.Pitch;
-	float baseY = Input.Yaw;
-	float baseR = Input.Roll;
-
-	float outP, outY;
-
-	
-	if (baseR <= 0.f)
-	{
-		outP = baseP * 1.5f -135.f;
-	}
-	else
-	{
-		outP = baseP *  -1.5f + 90.f;
-	}
-
-
-	{
-		outY = FMath::Abs(baseY) *  -0.75f - 30.f;
-	}
-	
-	if (Diff > 50.f)
-	{
-		outP = -30.f;
-		outY = -90.f;
-	}
-	
-	return FRotator(outP, outY, baseR);
-}
-
 void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
@@ -138,24 +74,23 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			// 2) mesh‐local ← world
 			const FTransform MeshWorldToLocal = GetSkelMeshComponent()->GetComponentTransform().Inverse();
 
+					
 			
 			if (VRUnitBase->RightMotionController)
 			{
-				const FTransform MCtoWorld = VRUnitBase->RightMotionController->GetComponentTransform();
-
 				// 2) mesh‐local ← world
-				//const FTransform MeshWorldToLocal = GetSkelMeshComponent()->GetComponentTransform().Inverse();
+				FTransform MCtoWorld =VRUnitBase->RightMotionController->GetComponentTransform();
+
+				FRotator MCRExtraEuler(  +1*VRotation );  
+				FTransform RTweak( MCRExtraEuler.Quaternion(), FVector::ZeroVector );
+				MCtoWorld = RTweak*MCtoWorld;
 
 				// 3) controller → world → mesh‐local
 				FTransform DesiredBoneLocal = MeshWorldToLocal * MCtoWorld;
 
 				// 4) extract rotation and log it
 				FQuat RawQuat = DesiredBoneLocal.GetRotation();
-				UE_LOG(LogTemp, Warning,
-					TEXT("RawHand Rot: P=%5.1f  Y=%5.1f  R=%5.1f"),
-					RawQuat.Rotator().Pitch,
-					RawQuat.Rotator().Yaw,
-					RawQuat.Rotator().Roll);
+
 
 				// 2) Define your “flip” (tweak these values as needed)
 				static const FRotator FlipRotator( /*Pitch*/ -220.f, /*Yaw*/ 260.f, /*Roll*/-260.f );
@@ -167,7 +102,7 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			
 			
 				RightHandRotation = RightHandTargetTM.Rotator();//MapRightHandRotationToFabrik(VRUnitBase->RightHandRotation, RightDiff);
-			
+				
 			
 				// separately on Pitch, Yaw, Roll:
 				SmoothedRightHandRot = FMath::RInterpTo(
@@ -179,36 +114,39 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			}
 
 
-			if (VRUnitBase->LeftMotionController)
-			{
-				const FTransform MCtoWorldL = VRUnitBase->LeftMotionController->GetComponentTransform();
-				FTransform DesiredL = GetSkelMeshComponent()->GetComponentTransform()*MCtoWorldL;
-				FQuat RawL         = DesiredL.GetRotation();
 
-				// the left bone is often mirrored in yaw relative to the right,
-				// so you can usually reuse your right‐hand Flip but swap the sign on Yaw:
-				static const FRotator FlipL(  /*Pitch*/ -220.f, /*Yaw*/ 260.f, /*Roll*/-260.f );
-				FQuat FlipQuatL = FlipL.Quaternion();
+				if (VRUnitBase->LeftMotionController)
+				{
+					FTransform MCtoWorldL = VRUnitBase->LeftMotionController->GetComponentTransform();
+					FRotator MCLExtraEuler(  -1*VRotation );  
+					FTransform LTweak( MCLExtraEuler.Quaternion(), FVector::ZeroVector );
+					MCtoWorldL = LTweak*MCtoWorldL;
 
-				// try both orders if you’re not 100% sure:
-				// FQuat CandidateA = FlipQuatL * RawL;
-				// FQuat CandidateB = RawL * FlipQuatL;
-				// LeftHandTargetTM.SetRotation(CandidateA);
-				LeftHandTargetTM.SetRotation( RawL*FlipQuatL ); // *FlipQuatL
-			
-				LeftHandRotation = LeftHandTargetTM.Rotator()*-1;
-				//LeftHandRotation.Roll = LeftHandTargetTM.Rotator().Roll-200.f;//MapRLeftHandRotationToFabrik(VRUnitBase->LeftHandRotation, LeftDiff);
-				//LeftHandRotation.Pitch = LeftHandTargetTM.Rotator().Pitch+0.f;
-				LeftHandRotation.Yaw = LeftHandTargetTM.Rotator().Yaw-180.f;
-	
+					//UE_LOG(LogTemp, Warning, TEXT("VRUnitBase->CalibLeftOffset: %s"), *VRUnitBase->CalibLeftOffset.ToString());
+					//FRotator OffExtraEuler(  -1*VRUnitBase->CalibLeftOffset );  
+					//FTransform OffTweak( OffExtraEuler.Quaternion(), FVector::ZeroVector );
+					//MCtoWorldL = OffTweak*MCtoWorldL;
+					
+					FTransform DesiredL = GetSkelMeshComponent()->GetComponentTransform()*MCtoWorldL;
+					FQuat RawL         = DesiredL.GetRotation();
+					
+					LeftHandTargetTM.SetRotation( RawL ); // *FlipQuatL
+
+					FRotator ExtraEuler( 0.f, -260.f, -260.f ); // WIth only Raw
+					//FRotator ExtraEuler( 0.f, -290.f, -60.f );  //Without Offset Tweak
+					//FRotator ExtraEuler( 60.f, -290.f, -60.f );  //With Offset Tweak
+					FTransform Tweak( ExtraEuler.Quaternion(), FVector::ZeroVector );
+					LeftHandTargetTM = Tweak * LeftHandTargetTM;
 				
-				SmoothedLeftHandRot = FMath::RInterpTo(
-						SmoothedLeftHandRot,       // from (last frame)
-						LeftHandRotation,          // to   (new target)
-						DeltaSeconds,               // how much time has passed
-						RotationInterpSpeed         // your speed scalar
-					);
-			}
+					LeftHandRotation = LeftHandTargetTM.Rotator();
+				
+					SmoothedLeftHandRot = FMath::RInterpTo(
+							SmoothedLeftHandRot,       // from (last frame)
+							LeftHandRotation,          // to   (new target)
+							DeltaSeconds,               // how much time has passed
+							RotationInterpSpeed         // your speed scalar
+						);
+				}
 			/*
 			        UE_LOG(LogTemp, Warning, TEXT(
                         "Right Hand Rotation -> Roll: %6.2f | Pitch: %6.2f | Yaw: %6.2f"

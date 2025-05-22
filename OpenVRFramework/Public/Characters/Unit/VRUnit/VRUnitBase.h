@@ -92,6 +92,12 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = VR, meta = (AllowPrivateAccess = "true"))
 	UMotionControllerComponent* RightMotionController;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = VR, meta = (AllowPrivateAccess = "true"))
+	FRotator CalibLeftOffset;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = VR, meta = (AllowPrivateAccess = "true"))
+	FRotator CalibRightOffset;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	FVector LeftHandCalibrationLocation = FVector(80, 0, 140);
 
