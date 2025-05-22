@@ -80,10 +80,17 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			{
 				// 2) mesh‐local ← world
 				FTransform MCtoWorld =VRUnitBase->RightMotionController->GetComponentTransform();
-
-				FRotator MCRExtraEuler(  +1*VRotation );  
-				FTransform RTweak( MCRExtraEuler.Quaternion(), FVector::ZeroVector );
-				MCtoWorld = RTweak*MCtoWorld;
+				if (VRUnitBase->EnableVirtualizer)
+				{
+					FRotator MCRExtraEuler(  +1*VRotation );
+					FTransform RTweak( MCRExtraEuler.Quaternion(), FVector::ZeroVector );
+					MCtoWorld = RTweak*MCtoWorld;
+				}else
+				{
+					FRotator MCRExtraEuler(  FRotator(0.f, +1*VRUnitBase->HMDRotation.Yaw, 0.f) );
+					FTransform RTweak( MCRExtraEuler.Quaternion(), FVector::ZeroVector );
+					MCtoWorld = RTweak*MCtoWorld;
+				}
 
 				// 3) controller → world → mesh‐local
 				FTransform DesiredBoneLocal = MeshWorldToLocal * MCtoWorld;
@@ -118,9 +125,17 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 				if (VRUnitBase->LeftMotionController)
 				{
 					FTransform MCtoWorldL = VRUnitBase->LeftMotionController->GetComponentTransform();
-					FRotator MCLExtraEuler(  -1*VRotation );  
-					FTransform LTweak( MCLExtraEuler.Quaternion(), FVector::ZeroVector );
-					MCtoWorldL = LTweak*MCtoWorldL;
+					if (VRUnitBase->EnableVirtualizer)
+					{
+						FRotator MCLExtraEuler(  -1*VRotation );  
+						FTransform LTweak( MCLExtraEuler.Quaternion(), FVector::ZeroVector );
+						MCtoWorldL = LTweak*MCtoWorldL;
+					}else
+					{
+						FRotator MCLExtraEuler(  FRotator(0.f, -1*VRUnitBase->HMDRotation.Yaw, 0.f) );  
+						FTransform LTweak( MCLExtraEuler.Quaternion(), FVector::ZeroVector );
+						MCtoWorldL = LTweak*MCtoWorldL;
+					}
 
 					//UE_LOG(LogTemp, Warning, TEXT("VRUnitBase->CalibLeftOffset: %s"), *VRUnitBase->CalibLeftOffset.ToString());
 					//FRotator OffExtraEuler(  -1*VRUnitBase->CalibLeftOffset );  

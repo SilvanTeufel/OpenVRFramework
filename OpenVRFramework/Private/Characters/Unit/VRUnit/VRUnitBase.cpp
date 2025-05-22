@@ -153,7 +153,12 @@ void AVRUnitBase::SetRotationAndPosition()
 	Camera->SetWorldRotation(HMDRotation);
 	//FVector VROriginLocation = VROrigin->GetRelativeLocation();
 	//UE_LOG(LogTemp, Warning, TEXT("OriginCalibrationOffset: %s"), *OriginCalibrationOffset.ToString());
-	FVector NewLocation = FVector((HMDPosition.X-OriginCalibrationOffset.X)*1.6f, (HMDPosition.Y-OriginCalibrationOffset.Y)*1.5f, HMDPosition.Z-OriginCalibrationOffset.Z-KneelingZ-10.f);
+	FVector NewLocation;
+	if (EnableVirtualizer)
+		NewLocation = FVector((HMDPosition.X-OriginCalibrationOffset.X)*1.6f, (HMDPosition.Y-OriginCalibrationOffset.Y)*1.5f, HMDPosition.Z-OriginCalibrationOffset.Z-KneelingZ-15.f);
+	else
+		NewLocation = FVector((HMDPosition.X-OriginCalibrationOffset.X)*1.0f, (HMDPosition.Y-OriginCalibrationOffset.Y)*1.0f, HMDPosition.Z-OriginCalibrationOffset.Z-StandingZ-90.f);
+
 	VROrigin->SetRelativeLocation(NewLocation); // HMDPosition.Z-StandingZ-90.f
 }
 
