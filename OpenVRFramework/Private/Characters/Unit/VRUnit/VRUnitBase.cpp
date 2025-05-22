@@ -100,6 +100,7 @@ void AVRUnitBase::ResetVInitialised()
 	VInitialised = false;
 	StandardInitialised = false;
 	// Optionally clear the timer if you no longer need it
+	//UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
 	GetWorldTimerManager().ClearTimer(TimerHandle_ResetVRotationOffsetInitialised);
 }
 

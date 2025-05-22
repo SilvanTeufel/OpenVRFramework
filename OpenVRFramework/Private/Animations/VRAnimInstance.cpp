@@ -40,11 +40,11 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			HeadLocation = VRUnitBase->HMDPosition;
 			HeadLocation.X -= VRUnitBase->OriginCalibrationOffset.X;
 			HeadLocation.Y -= HeadLocation.Y-VRUnitBase->OriginCalibrationOffset.Y;
-			HeadLocation += ForwardDirection*5.f;
+			HeadLocation += ForwardDirection*2.f;
 			WorldHeadLocation.Z = VRUnitBase->HMDPosition.Z + VRUnitBase->GetActorLocation().Z;
 			WorldHeadLocation.X = (VRUnitBase->HMDPosition.X-VRUnitBase->OriginCalibrationOffset.X)*3.f + VRUnitBase->GetActorLocation().X;
 			WorldHeadLocation.Y = (VRUnitBase->HMDPosition.Y-VRUnitBase->OriginCalibrationOffset.Y)*2.75f + VRUnitBase->GetActorLocation().Y;;
-			WorldHeadLocation += ForwardDirection*5.f;
+			WorldHeadLocation += ForwardDirection*2.f;
 			IsVirtualizerEnabled = VRUnitBase->EnableVirtualizer;
 			LeftHandPosition = VRUnitBase->LeftHandLocation;
 			RightHandPosition = VRUnitBase->RightHandLocation;
@@ -106,7 +106,9 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			
 				RightHandTargetTM.SetRotation(CandidateB); 
 
-			
+				FRotator ExtraEuler( 40.f, -20.f, 0.f ); // WIth only Raw
+				FTransform Tweak( ExtraEuler.Quaternion(), FVector::ZeroVector );
+				RightHandTargetTM = Tweak * RightHandTargetTM;
 			
 				RightHandRotation = RightHandTargetTM.Rotator();//MapRightHandRotationToFabrik(VRUnitBase->RightHandRotation, RightDiff);
 				
@@ -147,7 +149,7 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 					
 					LeftHandTargetTM.SetRotation( RawL ); // *FlipQuatL
 
-					FRotator ExtraEuler( 0.f, -260.f, -260.f ); // WIth only Raw
+					FRotator ExtraEuler( -20.f, -220.f, -260.f ); // WIth only Raw
 					//FRotator ExtraEuler( 0.f, -290.f, -60.f );  //Without Offset Tweak
 					//FRotator ExtraEuler( 60.f, -290.f, -60.f );  //With Offset Tweak
 					FTransform Tweak( ExtraEuler.Quaternion(), FVector::ZeroVector );
