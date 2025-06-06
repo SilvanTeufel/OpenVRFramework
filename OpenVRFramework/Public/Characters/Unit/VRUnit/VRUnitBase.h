@@ -46,7 +46,9 @@ private:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = VR)
+	FVector LocalSpaceMovement;
 	// VR Root Component
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = VR)
 	class USceneComponent* VROrigin;
@@ -62,7 +64,11 @@ public:
 	FVector HMDPosition;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
-	FVector OriginCalibrationOffset;
+	FVector OriginCalibrationOffset = FVector(0.f, 0.f, 0.f);
+
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
+	//FVector RotatedOriginCalibrationOffset = FVector(0.f, 0.f, 0.f);
+
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	FRotator HMDRotation;

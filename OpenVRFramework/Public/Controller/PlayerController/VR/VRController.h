@@ -6,6 +6,7 @@
 #include "Actors/Projectile.h"
 #include "Components/PointLightComponent.h"
 #include "EOS/EOS_PlayerController.h"
+#include "Components/BillboardComponent.h"
 #include "VRController.generated.h"
 
 /**
@@ -64,7 +65,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void AddOrUpdateCrosshairLight(const FVector& Location, bool bShouldBeVisible);
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
 	UBillboardComponent* CrosshairBillboard;
 
 	UFUNCTION(BlueprintCallable, Category = "Interaction")

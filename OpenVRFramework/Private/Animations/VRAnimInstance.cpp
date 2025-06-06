@@ -41,10 +41,53 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			HeadLocation.X -= VRUnitBase->OriginCalibrationOffset.X;
 			HeadLocation.Y -= HeadLocation.Y-VRUnitBase->OriginCalibrationOffset.Y;
 			HeadLocation += ForwardDirection*2.f;
+
+		
+			// --- NEW: Rotation-Dependent Head Location Calculation ---
+
+			/*
+			// 1. Define your multipliers
+			const float ForwardMultiplier = 2.25f;
+			const float RightMultiplier = 2.0f;
+
+			// 2. Get the HMD's rotation, but only its direction on the ground plane (its Yaw).
+			// This ensures you don't move up/down when you look up/down.
+			FRotator HeadYawRotation = FRotator(0.f, VRUnitBase->HMDRotation.Yaw, 0.f);
+
+			// 3. Calculate the HMD's movement relative to its calibrated center point.
+			FVector HMDMovementFromCenter = VRUnitBase->HMDPosition - VRUnitBase->OriginCalibrationOffset;
+
+			// 4. Transform the world movement into the Head's local "forward" and "right" directions.
+			// InverseTransformVector will use the Head's rotation to determine what is forward/right.
+			FVector MovementRelativeToHead = HeadYawRotation.UnrotateVector(HMDMovementFromCenter);
+
+			// 5. Apply your multipliers.
+			MovementRelativeToHead.X *= ForwardMultiplier; // Apply forward/backward multiplier
+			MovementRelativeToHead.Y *= RightMultiplier;   // Apply right/left multiplier
+
+			// 6. Transform the scaled local movement back into a world-space offset.
+			FVector ScaledWorldOffset = HeadYawRotation.RotateVector(MovementRelativeToHead);
+
+			// 7. Apply the final calculated offset.
+			WorldHeadLocation = OwningActor->GetActorLocation() + ScaledWorldOffset;
+			*/
+			// 8. Set the final Z height directly from the HMD position (as it shouldn't be scaled).
 			WorldHeadLocation.Z = VRUnitBase->HMDPosition.Z + VRUnitBase->GetActorLocation().Z;
-			WorldHeadLocation.X = (VRUnitBase->HMDPosition.X-VRUnitBase->OriginCalibrationOffset.X)*3.f + VRUnitBase->GetActorLocation().X;
-			WorldHeadLocation.Y = (VRUnitBase->HMDPosition.Y-VRUnitBase->OriginCalibrationOffset.Y)*2.75f + VRUnitBase->GetActorLocation().Y;;
-			WorldHeadLocation += ForwardDirection*2.f;
+			
+
+			//WorldHeadLocation.X = (VRUnitBase->HMDPosition.X-VRUnitBase->OriginCalibrationOffset.X) + VRUnitBase->GetActorLocation().X;
+			//WorldHeadLocation.Y = (VRUnitBase->HMDPosition.Y-VRUnitBase->OriginCalibrationOffset.Y) + VRUnitBase->GetActorLocation().Y;
+
+			
+			WorldHeadLocation.X = (VRUnitBase->HMDPosition.X-VRUnitBase->OriginCalibrationOffset.X)*2.f + VRUnitBase->GetActorLocation().X;
+			WorldHeadLocation.Y = (VRUnitBase->HMDPosition.Y-VRUnitBase->OriginCalibrationOffset.Y)*2.f + VRUnitBase->GetActorLocation().Y;
+			//WorldHeadLocation -= ForwardDirection*10.f;
+
+			//WorldHeadLocation.X = (VRUnitBase->HMDPosition.X-VRUnitBase->OriginCalibrationOffset.X)*3.f + VRUnitBase->GetActorLocation().X;
+			//WorldHeadLocation.Y = (VRUnitBase->HMDPosition.Y-VRUnitBase->OriginCalibrationOffset.Y)*2.75f + VRUnitBase->GetActorLocation().Y;
+
+
+			//WorldHeadLocation -= ForwardDirection*2.f;
 			IsVirtualizerEnabled = VRUnitBase->EnableVirtualizer;
 			LeftHandPosition = VRUnitBase->LeftHandLocation;
 			RightHandPosition = VRUnitBase->RightHandLocation;

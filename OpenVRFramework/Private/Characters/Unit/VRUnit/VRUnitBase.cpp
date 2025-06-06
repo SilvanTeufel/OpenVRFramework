@@ -152,14 +152,61 @@ void AVRUnitBase::SetRotationAndPosition()
 {
 	UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HMDRotation, HMDPosition);
 	Camera->SetWorldRotation(HMDRotation);
-	//FVector VROriginLocation = VROrigin->GetRelativeLocation();
 	//UE_LOG(LogTemp, Warning, TEXT("OriginCalibrationOffset: %s"), *OriginCalibrationOffset.ToString());
+	
+	FVector ForwardDirection = FRotationMatrix(HMDRotation).GetScaledAxis(EAxis::X);
+	FVector ActorLocation = GetActorLocation();
+	FVector ActorOffset = FVector(ActorLocation.X, ActorLocation.Y, -30.f);
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		// 1. Draw a BLUE sphere at your calibrated origin point. This point is fixed.
+		DrawDebugSphere(
+			World,
+			OriginCalibrationOffset+ActorOffset+ForwardDirection*80.f,
+			10.0f, // Radius
+			12,    // Segments
+			FColor::Blue,
+			false, // Persistent lines
+			0.0f,  // Lifetime (0 = one frame)
+			0,     // Depth Priority
+			1.0f   // Thickness
+		);
+
+		DrawDebugSphere(
+			World,
+			FVector(0.f, 0.f, HMDPosition.Z)+ActorOffset+ForwardDirection*80.f,
+			10.0f, // Radius
+			12,    // Segments
+			FColor::Red,
+			false, // Persistent lines
+			0.0f,  // Lifetime (0 = one frame)
+			0,     // Depth Priority
+			1.0f   // Thickness
+		);
+		// 2. Draw a GREEN sphere where your head currently is.
+		DrawDebugSphere(
+			World,
+			HMDPosition+ActorOffset+ForwardDirection*80.f,
+			10.0f,
+			12,
+			FColor::Green,
+			false,
+			0.0f,
+			0,
+			1.0f
+		);
+	}
+	
 	FVector NewLocation;
 	if (EnableVirtualizer)
-		NewLocation = FVector((HMDPosition.X-OriginCalibrationOffset.X)*1.6f, (HMDPosition.Y-OriginCalibrationOffset.Y)*1.5f, HMDPosition.Z-OriginCalibrationOffset.Z-KneelingZ-15.f);
+	{
+		NewLocation = FVector((HMDPosition.X-OriginCalibrationOffset.X)*1.0f, (HMDPosition.Y-OriginCalibrationOffset.Y)*1.0f, HMDPosition.Z-OriginCalibrationOffset.Z-KneelingZ-15.f);
+	}
 	else
 		NewLocation = FVector((HMDPosition.X-OriginCalibrationOffset.X)*1.0f, (HMDPosition.Y-OriginCalibrationOffset.Y)*1.0f, HMDPosition.Z-OriginCalibrationOffset.Z-StandingZ-90.f);
 
+	NewLocation = NewLocation+ForwardDirection*10.f;
 	VROrigin->SetRelativeLocation(NewLocation); // HMDPosition.Z-StandingZ-90.f
 }
 
@@ -178,10 +225,11 @@ void AVRUnitBase::UpdateRotation(FVector Position, FRotator Rotation, float Offs
 	
 	// Set the capsule component's rotation to match the HMD's yaw rotation
 	GetMesh()->SetRelativeRotation(NewRotation);
-	//SetActorRotation(NewRotation);
-	GetMesh()->SetRelativeLocation(FVector(HMDDirection.X*-10.f, HMDDirection.Y*-10.f, GetMesh()->GetRelativeLocation().Z));
-	//Camera->SetRelativeLocation(FVector(HMDDirection.X*20.f, HMDDirection.Y*20.f, 190.f));
-	//VROrigin->SetRelativeRotation(NewRotation);
+
+	//FVector NewLocation = FVector((OriginCalibrationOffset.X)*1.0f, (OriginCalibrationOffset.Y)*1.0f, GetMesh()->GetRelativeLocation().Z) + FVector(HMDDirection.X*-10.f, HMDDirection.Y*-10.f, 0.f);
+	//GetMesh()->SetRelativeLocation(NewLocation);
+	//GetMesh()->SetRelativeLocation(FVector(HMDDirection.X*-10.f, HMDDirection.Y*-10.f, GetMesh()->GetRelativeLocation().Z));
+
 }
 
 
@@ -696,14 +744,13 @@ void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 		VRotationOffset = HMDRotation.Yaw-VDevice->GetPlayerOrientation()* 360.0f;
 		StandingZ = VCrouch+25.f;
 		KneelingZ = StandingZ/2.f;
-		
-		OriginCalibrationOffset = HMDPosition; //-ForwardDirection*10.f;
+
+		OriginCalibrationOffset = HMDPosition;
+		GetMesh()->SetRelativeLocation(FVector(OriginCalibrationOffset.X, OriginCalibrationOffset.Y, GetMesh()->GetRelativeLocation().Z));
 
 		CalibLeftOffset = LeftMotionController->GetComponentRotation();
 		CalibRightOffset = RightMotionController->GetComponentRotation();
-		//CalibLeftOffset = LeftMotionController->GetComponentTransform().GetRelativeTransform(GetMesh()->GetComponentTransform());
-		//CalibRightOffset = RightMotionController->GetComponentTransform().GetRelativeTransform(GetMesh()->GetComponentTransform());
-		
+
 		VInitialised = true;
 
 		UE_LOG(LogTemp, Warning, TEXT("StandingZ: %f"), StandingZ);
