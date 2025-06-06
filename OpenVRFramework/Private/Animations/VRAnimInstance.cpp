@@ -149,7 +149,8 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			
 				RightHandTargetTM.SetRotation(CandidateB); 
 
-				FRotator ExtraEuler( 40.f, -20.f, 0.f ); // WIth only Raw
+				//FRotator ExtraEuler( 40.f, -20.f, 0.f ); // WIth only Raw
+				FRotator ExtraEuler( 40.f, 10.f, 40.f ); // WIth only Raw
 				FTransform Tweak( ExtraEuler.Quaternion(), FVector::ZeroVector );
 				RightHandTargetTM = Tweak * RightHandTargetTM;
 			
@@ -181,20 +182,14 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 						FTransform LTweak( MCLExtraEuler.Quaternion(), FVector::ZeroVector );
 						MCtoWorldL = LTweak*MCtoWorldL;
 					}
-
-					//UE_LOG(LogTemp, Warning, TEXT("VRUnitBase->CalibLeftOffset: %s"), *VRUnitBase->CalibLeftOffset.ToString());
-					//FRotator OffExtraEuler(  -1*VRUnitBase->CalibLeftOffset );  
-					//FTransform OffTweak( OffExtraEuler.Quaternion(), FVector::ZeroVector );
-					//MCtoWorldL = OffTweak*MCtoWorldL;
 					
 					FTransform DesiredL = GetSkelMeshComponent()->GetComponentTransform()*MCtoWorldL;
 					FQuat RawL         = DesiredL.GetRotation();
 					
 					LeftHandTargetTM.SetRotation( RawL ); // *FlipQuatL
 
-					FRotator ExtraEuler( -20.f, -220.f, -260.f ); // WIth only Raw
-					//FRotator ExtraEuler( 0.f, -290.f, -60.f );  //Without Offset Tweak
-					//FRotator ExtraEuler( 60.f, -290.f, -60.f );  //With Offset Tweak
+					//FRotator ExtraEuler( -20.f, -220.f, -260.f ); // WIth only Raw
+					FRotator ExtraEuler( -40.f, -220.f, -240.f ); // WIth only Raw
 					FTransform Tweak( ExtraEuler.Quaternion(), FVector::ZeroVector );
 					LeftHandTargetTM = Tweak * LeftHandTargetTM;
 				
@@ -207,18 +202,9 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 							RotationInterpSpeed         // your speed scalar
 						);
 				}
-			/*
-			        UE_LOG(LogTemp, Warning, TEXT(
-                        "Right Hand Rotation -> Roll: %6.2f | Pitch: %6.2f | Yaw: %6.2f"
-                    ), RightHandRotation.Roll, RightHandRotation.Pitch, RightHandRotation.Yaw);
-			*/
+
 			Crouch = VRUnitBase->CrouchedNormedZ;
-			/*
-			if (GEngine)
-			{
-				FString DebugMessage3 = FString::Printf(TEXT("Crouch %f "), Crouch);
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, DebugMessage3);
-			}*/
+
 			Velocity = VRUnitBase->NormedVelocity;
 			VRotation = VRUnitBase->VRotation;
 			VRotationOffset = VRUnitBase->VRotationOffset;

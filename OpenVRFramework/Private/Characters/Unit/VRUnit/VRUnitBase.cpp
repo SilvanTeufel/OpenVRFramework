@@ -155,8 +155,11 @@ void AVRUnitBase::SetRotationAndPosition()
 	//UE_LOG(LogTemp, Warning, TEXT("OriginCalibrationOffset: %s"), *OriginCalibrationOffset.ToString());
 	
 	FVector ForwardDirection = FRotationMatrix(HMDRotation).GetScaledAxis(EAxis::X);
+
+	/*
 	FVector ActorLocation = GetActorLocation();
 	FVector ActorOffset = FVector(ActorLocation.X, ActorLocation.Y, -30.f);
+
 	UWorld* World = GetWorld();
 	if (World)
 	{
@@ -173,17 +176,6 @@ void AVRUnitBase::SetRotationAndPosition()
 			1.0f   // Thickness
 		);
 
-		DrawDebugSphere(
-			World,
-			FVector(0.f, 0.f, HMDPosition.Z)+ActorOffset+ForwardDirection*80.f,
-			10.0f, // Radius
-			12,    // Segments
-			FColor::Red,
-			false, // Persistent lines
-			0.0f,  // Lifetime (0 = one frame)
-			0,     // Depth Priority
-			1.0f   // Thickness
-		);
 		// 2. Draw a GREEN sphere where your head currently is.
 		DrawDebugSphere(
 			World,
@@ -197,6 +189,7 @@ void AVRUnitBase::SetRotationAndPosition()
 			1.0f
 		);
 	}
+	*/
 	
 	FVector NewLocation;
 	if (EnableVirtualizer)
@@ -745,9 +738,12 @@ void AVRUnitBase::GetVirtualizerData() // 1.f / 0.f / 0.25f
 		StandingZ = VCrouch+25.f;
 		KneelingZ = StandingZ/2.f;
 
-		OriginCalibrationOffset = HMDPosition;
-		GetMesh()->SetRelativeLocation(FVector(OriginCalibrationOffset.X, OriginCalibrationOffset.Y, GetMesh()->GetRelativeLocation().Z));
+		//OriginCalibrationOffset = HMDPosition;
+		//GetMesh()->SetRelativeLocation(FVector(OriginCalibrationOffset.X, OriginCalibrationOffset.Y, GetMesh()->GetRelativeLocation().Z));
 
+		OriginCalibrationOffset = FVector(0.f, 0.f, HMDPosition.Z);
+		GetMesh()->SetRelativeLocation(FVector(OriginCalibrationOffset.X, OriginCalibrationOffset.Y, GetMesh()->GetRelativeLocation().Z));
+		
 		CalibLeftOffset = LeftMotionController->GetComponentRotation();
 		CalibRightOffset = RightMotionController->GetComponentRotation();
 
