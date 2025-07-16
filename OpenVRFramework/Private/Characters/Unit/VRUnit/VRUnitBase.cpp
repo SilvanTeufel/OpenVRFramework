@@ -67,8 +67,33 @@ void AVRUnitBase::BeginPlay()
 	// Null the actor with the HMD location
 	NullActorWithHMDLocation();
 	VDevice = Virt::FindDevice();
-	
+	//GetWorld()->GetTimerManager().SetTimer(InitTimerHandle, this, &AVRUnitBase::AttemptDeviceInitialization, 1.0f, true, 0.5f);
 	StartInitTimer();
+}
+
+void AVRUnitBase::AttemptDeviceInitialization()
+{
+	InitAttempts++;
+	UE_LOG(LogTemp, Log, TEXT("Attempting to find Virtualizer device... Attempt #%d"), InitAttempts);
+
+	// Try to find the device
+	VDevice = Virt::FindDevice();
+
+	if (VDevice)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Success! Virtualizer device found and connected."));
+        
+		// The device is found, so we can stop the timer.
+		GetWorld()->GetTimerManager().ClearTimer(InitTimerHandle);
+		StartInitTimer();
+		// You can now proceed with any logic that depends on VDevice
+		// For example: VDevice->Open(); VDevice->ResetPlayerOrientation();
+	}
+	else if (InitAttempts > 10) // Failsafe to stop trying after a while
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to find Virtualizer device after %d attempts."), InitAttempts);
+		GetWorld()->GetTimerManager().ClearTimer(InitTimerHandle);
+	}
 }
 
 void AVRUnitBase::EndPlay(const EEndPlayReason::Type EndPlayReason)

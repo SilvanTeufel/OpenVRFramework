@@ -42,7 +42,9 @@ protected:
 	void InitHeight();
 private:
 	FTimerHandle TimerHandle_ResetVRotationOffsetInitialised;
-	
+	FTimerHandle InitTimerHandle;
+	void AttemptDeviceInitialization();
+	int32 InitAttempts = 0;
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

@@ -64,10 +64,38 @@ FVirtInputDevice::~FVirtInputDevice()
 	this->ReleaseVirtDevice();
 }
 
+
+void FVirtInputDevice::ReleaseVirtDevice() 
+{
+	// THE CRITICAL CHECK:
+	// This checks if the m_virtDevice pointer is valid (not null AND not garbage collected).
+	// This is the line that prevents the shutdown crash.
+	if (IsValid(m_virtDevice))
+	{
+		// --- All of these operations are now safe ---
+		m_virtDevice->HapticStop();
+		m_virtDevice->Close();
+
+		if (OnVirtDeviceChanged.IsBound())
+		{
+			OnVirtDeviceChanged.Broadcast(m_virtDevice, EVirtDeviceChangedType::Disconnect);
+		}
+
+		CybSDKUtils::FreeObjectForGarbageCollection(m_virtDevice);
+
+		UE_LOG(LogTemp, Display, TEXT("[CYBERITH] Successfully disconnected from Virtualizer device."));
+	}
+
+	// IMPORTANT:
+	// Always set the pointer to null afterwards. This prevents any other part
+	// of the code from accidentally using a stale pointer, even if it was already invalid.
+	m_virtDevice = nullptr;
+}
+/*
 void FVirtInputDevice::ReleaseVirtDevice() 
 {
 	// Release virt device
-	if (m_virtDevice != nullptr)
+	if (IsValid(m_virtDevice))
 	{
 		// Stop haptics
 		m_virtDevice->HapticStop();
@@ -87,7 +115,7 @@ void FVirtInputDevice::ReleaseVirtDevice()
 		UE_LOG(LogTemp, Display, TEXT("[CYBERITH] Successfully disconnected from Virtualizer device."));
 	}
 }
-
+*/
 void FVirtInputDevice::Tick(float DeltaTime)
 {
 #if WITH_EDITOR

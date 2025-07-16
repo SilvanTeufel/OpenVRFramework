@@ -7,5 +7,8 @@ void CybSDKUtils::SaveObjectFromGarbageCollection(UObject* object)
 
 void CybSDKUtils::FreeObjectForGarbageCollection(UObject* object)
 {
-	object->RemoveFromRoot();
+	if (object && object->IsValidLowLevel() && !object->HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed))
+	{
+			object->RemoveFromRoot();
+	}
 }
