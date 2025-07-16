@@ -58,12 +58,12 @@ void AVRUnitBase::BeginPlay()
 {
 	Super::BeginPlay();
 	// Check if VDevice is valid before calling Close()
-	
+	/*
 	if (VDevice)
 	{
 		VDevice->Close();
 		VDevice = nullptr; // Optionally set to nullptr to avoid dangling pointers
-	}
+	}*/
 	// Null the actor with the HMD location
 	NullActorWithHMDLocation();
 	VDevice = Virt::FindDevice();

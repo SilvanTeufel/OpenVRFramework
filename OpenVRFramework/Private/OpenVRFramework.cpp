@@ -191,7 +191,7 @@ bool FOpenVRFrameworkModule::HandleSettingsSaved()
 	{
 #if WITH_EDITOR
 		FMessageDialog::Open(EAppMsgType::Ok, 			
-			FText::FromString(FString::Printf(TEXT("[CYBERITH] Device Type '%ws' not available at this moment."), *GetEnumAsString(Settings->DeviceType))));
+			FText::FromString(FString::Printf(TEXT("[CYBERITH] Device Type '%s' not available at this moment."), *GetEnumAsString(Settings->DeviceType))));
 #endif
 		return false;
 	}
