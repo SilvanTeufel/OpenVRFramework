@@ -9,7 +9,7 @@
 
 using namespace CybSDK;
 
-UVirtDevice::UVirtDevice(const FObjectInitializer& objectInitializer) : Super(objectInitializer)
+UVirtDevice::UVirtDevice(): m_device(nullptr)
 {}
 
 UVirtDevice::~UVirtDevice()
@@ -69,11 +69,14 @@ bool UVirtDevice::IsOpen() const
 	return (m_device != nullptr && m_device->IsOpen());
 }
 
-bool UVirtDevice::Close()
+void UVirtDevice::Close()
 {
-	if (m_device != nullptr)
-		return m_device->Close();
-	return true;
+	if (m_device)
+	{
+		m_device->Close();      // SDK teardown
+		delete m_device;        // or however you free it
+		m_device = nullptr;     // <— so you never get a -1 in there
+	}
 }
 
 const FVirtDeviceInfo& UVirtDevice::GetDeviceInfo() const
@@ -169,8 +172,10 @@ void UVirtDevice::HapticPlay()
 
 void UVirtDevice::HapticStop()
 {
-	if (m_device != nullptr)
-		m_device->HapticStop();
+	if (m_device == nullptr)
+		return;
+	
+	m_device->HapticStop();
 }
 
 void UVirtDevice::HapticSetGain(int gain)

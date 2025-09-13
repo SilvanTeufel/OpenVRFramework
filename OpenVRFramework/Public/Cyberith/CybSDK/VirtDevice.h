@@ -44,8 +44,7 @@ class OPENVRFRAMEWORK_API UVirtDevice : public UObject
 	GENERATED_BODY()
 
 public:
-	UVirtDevice() = default;
-	explicit UVirtDevice(const FObjectInitializer& objectInitializer);
+	UVirtDevice();
 	~UVirtDevice();
 
 	static UVirtDevice* WrapVirtDevice(CybSDK::NativeVirtDevice* device);
@@ -76,7 +75,7 @@ public:
 	 * @brief Closes the connection to the Virtualizer device.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Virtualizer|Device|Connection")
-		bool Close();
+		void Close();
 
 
 	//****************************************************************************************

@@ -40,11 +40,10 @@ protected:
 
 	UFUNCTION()
 	void InitHeight();
+	
 private:
 	FTimerHandle TimerHandle_ResetVRotationOffsetInitialised;
-	FTimerHandle InitTimerHandle;
-	void AttemptDeviceInitialization();
-	int32 InitAttempts = 0;
+	
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -60,31 +59,26 @@ public:
 	class UCameraComponent* Camera;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
-	bool EnableDebug = true;
+	bool EnableDebug = false;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	FVector HMDPosition;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	FVector OriginCalibrationOffset = FVector(0.f, 0.f, 0.f);
-
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
-	//FVector RotatedOriginCalibrationOffset = FVector(0.f, 0.f, 0.f);
-
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	FRotator HMDRotation;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	FVector HMDOffset;
-	// Reference Z-Positions for normalization
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	float StandingZ = 180.f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	float KneelingZ = StandingZ/2.f;
-
-	// Normalized Z-Position
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = VR, meta = (AllowPrivateAccess = "true"))
 	float CrouchedNormedZ;
 

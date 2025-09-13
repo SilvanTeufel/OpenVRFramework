@@ -34,90 +34,24 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			HeadZLocation = VRUnitBase->HeadZLocation;
 			HeadRotation = VRUnitBase->HMDRotation;
 			FVector ForwardDirection = FRotationMatrix(VRUnitBase->HMDRotation).GetScaledAxis(EAxis::X);
-
-			// Normalize the movement direction to ensure consistent movement speed
+			
 			ForwardDirection.Normalize();
 			HeadLocation = VRUnitBase->HMDPosition;
 			HeadLocation.X -= VRUnitBase->OriginCalibrationOffset.X;
 			HeadLocation.Y -= HeadLocation.Y-VRUnitBase->OriginCalibrationOffset.Y;
 			HeadLocation += ForwardDirection*2.f;
-
-		
-			// --- NEW: Rotation-Dependent Head Location Calculation ---
-
-			/*
-			// 1. Define your multipliers
-			const float ForwardMultiplier = 2.25f;
-			const float RightMultiplier = 2.0f;
-
-			// 2. Get the HMD's rotation, but only its direction on the ground plane (its Yaw).
-			// This ensures you don't move up/down when you look up/down.
-			FRotator HeadYawRotation = FRotator(0.f, VRUnitBase->HMDRotation.Yaw, 0.f);
-
-			// 3. Calculate the HMD's movement relative to its calibrated center point.
-			FVector HMDMovementFromCenter = VRUnitBase->HMDPosition - VRUnitBase->OriginCalibrationOffset;
-
-			// 4. Transform the world movement into the Head's local "forward" and "right" directions.
-			// InverseTransformVector will use the Head's rotation to determine what is forward/right.
-			FVector MovementRelativeToHead = HeadYawRotation.UnrotateVector(HMDMovementFromCenter);
-
-			// 5. Apply your multipliers.
-			MovementRelativeToHead.X *= ForwardMultiplier; // Apply forward/backward multiplier
-			MovementRelativeToHead.Y *= RightMultiplier;   // Apply right/left multiplier
-
-			// 6. Transform the scaled local movement back into a world-space offset.
-			FVector ScaledWorldOffset = HeadYawRotation.RotateVector(MovementRelativeToHead);
-
-			// 7. Apply the final calculated offset.
-			WorldHeadLocation = OwningActor->GetActorLocation() + ScaledWorldOffset;
-			*/
-			// 8. Set the final Z height directly from the HMD position (as it shouldn't be scaled).
+			
 			WorldHeadLocation.Z = VRUnitBase->HMDPosition.Z + VRUnitBase->GetActorLocation().Z;
-			
 
-			//WorldHeadLocation.X = (VRUnitBase->HMDPosition.X-VRUnitBase->OriginCalibrationOffset.X) + VRUnitBase->GetActorLocation().X;
-			//WorldHeadLocation.Y = (VRUnitBase->HMDPosition.Y-VRUnitBase->OriginCalibrationOffset.Y) + VRUnitBase->GetActorLocation().Y;
-
-			
 			WorldHeadLocation.X = (VRUnitBase->HMDPosition.X-VRUnitBase->OriginCalibrationOffset.X)*2.f + VRUnitBase->GetActorLocation().X;
 			WorldHeadLocation.Y = (VRUnitBase->HMDPosition.Y-VRUnitBase->OriginCalibrationOffset.Y)*2.f + VRUnitBase->GetActorLocation().Y;
-			//WorldHeadLocation -= ForwardDirection*10.f;
 
-			//WorldHeadLocation.X = (VRUnitBase->HMDPosition.X-VRUnitBase->OriginCalibrationOffset.X)*3.f + VRUnitBase->GetActorLocation().X;
-			//WorldHeadLocation.Y = (VRUnitBase->HMDPosition.Y-VRUnitBase->OriginCalibrationOffset.Y)*2.75f + VRUnitBase->GetActorLocation().Y;
-
-
-			//WorldHeadLocation -= ForwardDirection*2.f;
 			IsVirtualizerEnabled = VRUnitBase->EnableVirtualizer;
 			LeftHandPosition = VRUnitBase->LeftHandLocation;
 			RightHandPosition = VRUnitBase->RightHandLocation;
 
-		
-			/*
-			if (GEngine)
-			{
-				// Print X, Y and Z in one go
-				FString DebugMessage = FString::Printf(
-					TEXT("HeadLocation: X = %f, Y = %f, Z = %f"),
-					HeadLocation.X,
-					HeadLocation.Y,
-					HeadLocation.Z
-				);
-				GEngine->AddOnScreenDebugMessage(
-					 -1,
-					 5.0f,
-					 FColor::Green,
-					DebugMessage
-				);
-			}
-			*/
-
-			//RightHandRotation = VRUnitBase->RightHandRotation;
-
-			// 2) mesh‐local ← world
+			
 			const FTransform MeshWorldToLocal = GetSkelMeshComponent()->GetComponentTransform().Inverse();
-
-					
 			
 			if (VRUnitBase->RightMotionController)
 			{
@@ -186,9 +120,8 @@ void UVRAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 					FTransform DesiredL = GetSkelMeshComponent()->GetComponentTransform()*MCtoWorldL;
 					FQuat RawL         = DesiredL.GetRotation();
 					
-					LeftHandTargetTM.SetRotation( RawL ); // *FlipQuatL
-
-					//FRotator ExtraEuler( -20.f, -220.f, -260.f ); // WIth only Raw
+					LeftHandTargetTM.SetRotation( RawL );
+					
 					FRotator ExtraEuler( -40.f, -220.f, -240.f ); // WIth only Raw
 					FTransform Tweak( ExtraEuler.Quaternion(), FVector::ZeroVector );
 					LeftHandTargetTM = Tweak * LeftHandTargetTM;
