@@ -3,7 +3,6 @@
 
 #include "Actors/Waypoint.h"
 #include "Characters/Unit/UnitBase.h"
-#include "Controller/PLayerController/ControllerBase.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -63,11 +62,6 @@ void AWaypoint::OnPlayerEnter_Implementation(UPrimitiveComponent* OverlapCompone
 				ActualCharacter->SetUEPathfinding = true;
 				ActualCharacter->RunLocationArray.Empty();
 				ActualCharacter->RunLocationArrayIterator = 0;
-				
-				ActualCharacter->DijkstraStartPoint = ActualCharacter->GetActorLocation();
-				ActualCharacter->DijkstraEndPoint = NextWaypoint->GetActorLocation();
-				ActualCharacter->DijkstraSetPath = true;
-				ActualCharacter->FollowPath = false;
 			}
 		}
 	}

@@ -67,14 +67,14 @@ void AVRUnitBase::BeginPlay()
 	// Null the actor with the HMD location
 	NullActorWithHMDLocation();
 	VDevice = Virt::FindDevice();
-	if (VDevice->Open())
+	if (VDevice && VDevice->Open())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Success! Virtualizer device found and connected."));
 	}else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Failed to find Virtualizer device"));
 		VDevice = Virt::FindDevice();
-		if (VDevice->Open())
+		if (VDevice && VDevice->Open())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("NOW WE FOUND IT!"));
 		}
@@ -123,8 +123,6 @@ void AVRUnitBase::InitHeight()
 {
 	if(!StandardInitialised && !EnableVirtualizer)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("->Rotation Offset Initialised<-"));
-		VRotationOffset = HMDRotation.Yaw-VDevice->GetPlayerOrientation()* 360.0f;
 		StandingZ = HMDPosition.Z; //+25.f;
 		KneelingZ = StandingZ/2.f;
 		StandardInitialised = true;

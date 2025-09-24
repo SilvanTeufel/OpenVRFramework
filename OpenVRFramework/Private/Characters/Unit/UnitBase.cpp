@@ -12,13 +12,11 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Controller/AIController/BuildingControllerBase.h"
-#include "Controller/PlayerController/ControllerBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameModes/RTSGameModeBase.h"
 #include "Net/UnrealNetwork.h"
 #include "Widgets/UnitTimerWidget.h"
 
-AControllerBase* ControllerBase;
 // Sets default values
 AUnitBase::AUnitBase(const FObjectInitializer& ObjectInitializer):Super(ObjectInitializer)
 {
@@ -121,8 +119,7 @@ void AUnitBase::CreateHealthWidgetComp()
 	// Check if the HealthWidgetComp is already created
 	//if (!HealthCompCreated)
 	{
-		if (ControllerBase)
-		{
+
 
 			ARTSGameModeBase* RTSGameMode = Cast<ARTSGameModeBase>(GetWorld()->GetAuthGameMode());
 			
@@ -130,7 +127,7 @@ void AUnitBase::CreateHealthWidgetComp()
 			{
 				return;
 			}
-		}
+		
 		
 		if (HealthWidgetComp && HealthBarWidgetClass)
 		{
@@ -170,9 +167,6 @@ void AUnitBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
-
-		
-		ControllerBase = Cast<AControllerBase>(GetWorld()->GetFirstPlayerController());
 		SetupTimerWidget();
 
 

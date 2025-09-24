@@ -5,8 +5,6 @@
 #include <Components/ProgressBar.h>
 #include <Components/TextBlock.h>
 
-#include "Controller/PlayerController/ControllerBase.h"
-
 
 void UUnitBaseHealthBar::UpdateExperience()
 {

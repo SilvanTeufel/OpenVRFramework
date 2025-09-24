@@ -17,9 +17,28 @@ AProjectile::AProjectile()
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	SetRootComponent(Mesh);
 	
+	// Use query-only collision and ensure overlap events are generated.
 	Mesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	Mesh->SetCollisionProfileName(TEXT("Trigger")); // Kollisionsprofil festlegen
 	Mesh->SetGenerateOverlapEvents(true);
+
+	// Defensive: Ensure no physics simulation or rigid-body collisions happen.
+	// This prevents unexpected physical interactions while keeping query/overlap functionality.
+	if (Mesh)
+	{
+		Mesh->SetSimulatePhysics(false);
+		Mesh->SetEnableGravity(false);
+		Mesh->SetNotifyRigidBodyCollision(false);
+		// Make sure the object type is a dynamic world object and explicitly set responses.
+		Mesh->SetCollisionObjectType(ECC_WorldDynamic);
+		// Reset responses to be conservative: ignore everything then overlap pawns/world static so OnOverlap triggers.
+		Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
+		Mesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+		Mesh->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Overlap);
+		Mesh->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+		// Wichtig: Sichtbarkeit blocken, damit LineTrace/Sweep das Projektil treffen kann
+		Mesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	}
 
 	if (HasAuthority())
 	{
@@ -102,14 +121,26 @@ void AProjectile::InitForUnGrab(AActor* TargetActor, AActor* ShootingActor, FVec
 	Shooter = ShootingActor;
 	GotGrabed = false;
 	
-	if(TargetLocation.IsZero())
-		TargetLocation = TargetActor->GetActorLocation();
+	// Ziel beim Loslassen immer neu setzen (falls kein Ziel übergeben, bleibt TargetLocation auf StartLocation)
+	TargetLocation = TargetActor ? TargetActor->GetActorLocation() : StartLocation;
 
-	
-
+	// Startpunkt ist die aktuelle Projektilposition beim Loslassen
 	ShooterLocation = StartLocation;
-	
-	
+
+	// Wenn ein Target vorhanden ist, folge diesem; ansonsten nicht — das Projektil soll in Ruhe bleiben.
+	if (TargetActor)
+	{
+		FollowTarget = true;
+		// Verwende die im Projektil deklarierte UnGrab-MovementSpeed als Startgeschwindigkeit
+		MovementSpeed = UnGrabMovementSpeed;
+	}
+	else
+	{
+		// Kein Ziel: das Projektil soll nicht weiterfliegen, sondern liegen bleiben
+		FollowTarget = false;
+		MovementSpeed = 0.f;
+	}
+
 	AUnitBase* ShootingUnit = Cast<AUnitBase>(Shooter);
 	if(ShootingUnit)
 	{
@@ -118,24 +149,75 @@ void AProjectile::InitForUnGrab(AActor* TargetActor, AActor* ShootingActor, FVec
 
 		if (ShootingUnit->IsVisibileEnemy || ShootingUnit->IsMyTeam)
 		{
-
 			SetVisibility(true);
 		}
 		else
 		{
-
 			SetVisibility(false);
 		}
 		
 	}
 	
+	// Re-enable collision/overlap events when released so projectile can interact normally again.
+	if (Mesh)
+	{
+		Mesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		Mesh->SetGenerateOverlapEvents(true);
+
+		// Keep physics off by default; projectile movement is driven manually in Tick when needed.
+		Mesh->SetSimulatePhysics(false);
+		Mesh->SetEnableGravity(false);
+		Mesh->SetNotifyRigidBodyCollision(false);
+
+		// Restore conservative collision object type and responses used in constructor
+		Mesh->SetCollisionObjectType(ECC_WorldDynamic);
+		Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
+		Mesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+		Mesh->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Overlap);
+		Mesh->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+		// Sichtbarkeit blocken, damit die Zielerfassung nach dem Loslassen weiter funktioniert
+		Mesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	}
+
+	// Reset LifeTime so the projectile won't be destroyed immediately after ungrab if MaxLifeTime is small
+	LifeTime = 0.f;
 }
 
 void AProjectile::InitForGrab(FVector VelocityWhileGrabbed, float MLTime)
 {
+	// Set a fresh lifetime window for the grabbed state so it doesn't immediately expire
 	MaxLifeTime = MLTime;
 	GrabVelocity = VelocityWhileGrabbed;
 	GotGrabed = true;
+
+	// Reset accumulated life while grabbed so it won't be destroyed while player manipulates it
+	LifeTime = 0.f;
+
+	// While grabbed we do not want the projectile to auto-follow any target
+	FollowTarget = false;
+
+	// Ensure mesh is visible when grabbed (defensive)
+	SetVisibility(true);
+
+	// Defensive: While grabbed the projectile must not participate in physics collisions.
+	// We disable collision and overlap events completely to avoid immediate OnOverlap-based destruction
+	// while the player holds and moves the projectile.
+	if (Mesh)
+	{
+		Mesh->SetSimulatePhysics(false);
+		Mesh->SetEnableGravity(false);
+		Mesh->SetNotifyRigidBodyCollision(false);
+
+		// Disable collision and overlap events while grabbed
+		Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Mesh->SetGenerateOverlapEvents(false);
+
+		// Still keep the configured responses so they are known when re-enabling later
+		Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
+		Mesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+		Mesh->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Overlap);
+		Mesh->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	}
 }
 
 // Called when the game starts or when spawned
@@ -157,6 +239,8 @@ void AProjectile::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME(AProjectile, MaxLifeTime);
 	DOREPLIFETIME(AProjectile, TeamId);
 	DOREPLIFETIME(AProjectile, MovementSpeed);
+	// Repliziere die beim UnGrab verwendete Geschwindigkeit
+	DOREPLIFETIME(AProjectile, UnGrabMovementSpeed);
 	DOREPLIFETIME(AProjectile, DestructionDelayTime);
 	DOREPLIFETIME(AProjectile, RotateMesh);
 	DOREPLIFETIME(AProjectile, RotationSpeed);
@@ -216,7 +300,7 @@ void AProjectile::Tick(float DeltaTime)
 			if(FollowTarget)
 			{
 				const FVector Direction = UKismetMathLibrary::GetDirectionUnitVector(GetActorLocation(), TargetToAttack->GetActorLocation());
-				AddActorWorldOffset(Direction * MovementSpeed);
+				AddActorWorldOffset(Direction * MovementSpeed * DeltaTime);
 			}
 		}else if(FollowTarget)
 		{
@@ -224,12 +308,12 @@ void AProjectile::Tick(float DeltaTime)
 		}else
 		{
 				const FVector Direction = UKismetMathLibrary::GetDirectionUnitVector(ShooterLocation, TargetLocation);
-            	AddActorWorldOffset(Direction * MovementSpeed);
+            	AddActorWorldOffset(Direction * MovementSpeed * DeltaTime);
 		}
 
 		// Calculate the distance between the projectile and the target
 		float DistanceToTarget = FVector::Dist(GetActorLocation(), Target->GetActorLocation());
-		if(DistanceToTarget <= MovementSpeed && FollowTarget)
+		if(DistanceToTarget <= MovementSpeed * DeltaTime && FollowTarget)
 		{
 			Impact(Target);
 			Destroy(true, false);

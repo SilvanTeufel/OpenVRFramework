@@ -5,7 +5,6 @@
 #include "Perception/AiPerceptionComponent.h"
 #include "Perception/AiSenseConfig_Sight.h"
 #include "Actors/Waypoint.h"
-#include "Controller/PlayerController/ControllerBase.h"
 
 AHealingUnitController::AHealingUnitController()
 {
@@ -252,14 +251,11 @@ void AHealingUnitController::ChaseHealTarget(AHealingUnit* UnitBase, float Delta
     						UnitBase->UnitsToChase.Remove(UnitBase->UnitToChase );
     						UnitBase->UnitToChase = nullptr;
     						
-    						if(!UnitBase->TeamId && UnitBase->FollowPath)
+    						if(!UnitBase->TeamId)
     						{
     							UnitBase->RunLocationArray.Empty();
     							UnitBase->RunLocationArrayIterator = 0;
-    							UnitBase->DijkstraStartPoint = UnitBase->GetActorLocation();
-    							UnitBase->DijkstraEndPoint = UnitBase->NextWaypoint->GetActorLocation();
-    							UnitBase->DijkstraSetPath = true;
-    							UnitBase->FollowPath = false;
+  
     							UnitBase->SetUEPathfinding = true;
     							UnitBase->SetUnitState(UnitBase->UnitStatePlaceholder);
     						}else
@@ -451,15 +447,10 @@ void AHealingUnitController::HealPatrol(AHealingUnit* UnitBase, float DeltaSecon
 			WaypointLocation =  FVector(WaypointLocation.X, WaypointLocation.Y, UnitBase->FlyHeight);
 		}
 
-		if(UnitBase->FollowPath)
-		{
-			const FVector ADirection = UKismetMathLibrary::GetDirectionUnitVector(UnitBase->GetActorLocation(), UnitBase->RunLocation);
-			UnitBase->AddMovementInput(ADirection, UnitBase->Attributes->GetRunSpeedScale());
-		}else
-		{
-			const FVector ADirection = UKismetMathLibrary::GetDirectionUnitVector(UnitBase->GetActorLocation(), WaypointLocation);
-			UnitBase->AddMovementInput(ADirection, UnitBase->Attributes->GetRunSpeedScale());
-		}
+
+		const FVector ADirection = UKismetMathLibrary::GetDirectionUnitVector(UnitBase->GetActorLocation(), WaypointLocation);
+		UnitBase->AddMovementInput(ADirection, UnitBase->Attributes->GetRunSpeedScale());
+		
 	}
 	else
 	{

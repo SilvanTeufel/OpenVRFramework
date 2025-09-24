@@ -81,6 +81,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void GrabProjectile( AVRUnitBase* VRUnit);
 	
+	// Releases a previously grabbed projectile (separate from GrabProjectile)
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void UnGrabProjectile( AVRUnitBase* VRUnit);
+
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void HandleGrabbedProjectile();
 	

@@ -11,7 +11,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Controller/AIController/WorkerUnitControllerBase.h"
-#include "Controller/PlayerController/ExtendedControllerBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameModes/ResourceGameMode.h"
 #include "Net/UnrealNetwork.h"
@@ -45,6 +44,7 @@ void AWorkingUnitBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 void AWorkingUnitBase::SpawnWorkArea_Implementation(TSubclassOf<AWorkArea> WorkAreaClass, AWaypoint* Waypoint)
 {
+	/*
 		if (!OwningPlayerController)
 		{
 			UE_LOG(LogTemp, Error, TEXT("No OwningPlayerController"));
@@ -95,6 +95,7 @@ void AWorkingUnitBase::SpawnWorkArea_Implementation(TSubclassOf<AWorkArea> WorkA
 			}
 			
 		}
+	*/
 }
 
 void AWorkingUnitBase::ServerSpawnWorkArea_Implementation(TSubclassOf<AWorkArea> WorkAreaClass, AWaypoint* Waypoint, FVector HitLocation)
@@ -156,7 +157,7 @@ void AWorkingUnitBase::ClientReceiveWorkArea_Implementation(AWorkArea* ClientAre
 		UE_LOG(LogTemp, Error, TEXT("No OwningPlayerController"));
 		return;
 	}
-	
+	/*
 	AExtendedControllerBase* ExtendedControllerBase = Cast<AExtendedControllerBase>(OwningPlayerController);
 	
 	if (!ExtendedControllerBase)
@@ -186,4 +187,5 @@ void AWorkingUnitBase::ClientReceiveWorkArea_Implementation(AWorkArea* ClientAre
 			ClientArea->SetActorLocation(HitResult.Location);
 		}
 	}
+	*/
 }

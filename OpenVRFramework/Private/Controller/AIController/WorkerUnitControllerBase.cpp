@@ -17,7 +17,6 @@
 #include "Components/CapsuleComponent.h"
 #include "NavigationSystem.h"
 #include "Characters/Unit/BuildingBase.h"
-#include "Controller/PlayerController/ControllerBase.h"
 #include "GameModes/ResourceGameMode.h"
 #include "Net/UnrealNetwork.h"
 

@@ -1,8 +1,6 @@
 
 #include "Widgets/AbilityChooser.h"
 
-#include "Controller/PlayerController/ControllerBase.h"
-
 void UAbilityChooser::NativeConstruct()
 {
     Super::NativeConstruct();

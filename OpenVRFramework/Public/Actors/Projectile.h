@@ -88,6 +88,11 @@ public:
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	float MovementSpeed = 100.f;
 
+		// Geschwindigkeit, die beim Loslassen (UnGrab) dem Projektil zugewiesen wird.
+		// Standardmäßig dreimal so schnell wie der bisherige Default (10.f -> 30.f)
+		UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
+		float UnGrabMovementSpeed = 30.f;
+
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	TSubclassOf<UGameplayEffect> ProjectileEffect;
 

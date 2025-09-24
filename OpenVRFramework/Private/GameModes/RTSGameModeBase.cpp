@@ -3,10 +3,7 @@
 
 #include "GameModes/RTSGameModeBase.h"
 #include "PlayerStart/PlayerStartBase.h"
-#include "Characters/Camera/CameraBase.h"
 #include "EngineUtils.h"
-#include "Controller/PlayerController/CameraControllerBase.h"
-#include "Hud/PathProviderHUD.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "AIController.h"
 #include "Actors/Waypoint.h"
@@ -73,17 +70,6 @@ int32 FindMatchingIndex(const TArray<int32>& IdArray, int32 SearchId)
 	return Index; // Return the found index, or INDEX_NONE if not found
 }
 
-void ARTSGameModeBase::SetTeamIdAndDefaultWaypoint_Implementation(int Id, AWaypoint* Waypoint, ACameraControllerBase* CameraControllerBase)
-{
-
-	if(CameraControllerBase)
-	{
-		CameraControllerBase->SetControlerTeamId(Id);
-		CameraControllerBase->SetControlerDefaultWaypoint(Waypoint);
-	}
-	
-}
-
 void ARTSGameModeBase::SetTeamIdsAndWaypoints_Implementation()
 {
 	
@@ -98,14 +84,7 @@ void ARTSGameModeBase::SetTeamIdsAndWaypoints_Implementation()
 	{
 		
 		AController* PlayerController = It->Get();
-		ACameraControllerBase* CameraControllerBase = Cast<ACameraControllerBase>(PlayerController);
-
-		if (CameraControllerBase && PlayerStarts.IsValidIndex(PlayerStartIndex))
-		{
-			APlayerStartBase* CustomPlayerStart = PlayerStarts[PlayerStartIndex];
-			SetTeamIdAndDefaultWaypoint_Implementation(CustomPlayerStart->SelectableTeamId, CustomPlayerStart->DefaultWaypoint, CameraControllerBase);
-			PlayerStartIndex++;  // Move to the next PlayerStart for the next iteration
-		}
+		
 	}
 }
 

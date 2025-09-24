@@ -9,7 +9,6 @@
 #include <GameplayEffectTypes.h>
 #include "Engine/Engine.h"
 #include "Characters/Unit/LevelUnit.h"
-#include "Controller/PlayerController/ControllerBase.h"
 #include "Net/UnrealNetwork.h"
 
 

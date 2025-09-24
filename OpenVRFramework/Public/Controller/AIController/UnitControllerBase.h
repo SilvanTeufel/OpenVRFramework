@@ -7,11 +7,8 @@
 #include "Navigation/PathFollowingComponent.h"
 
 #include "Characters/Unit/UnitBase.h"
-#include "Hud/HUDBase.h"
-#include "Hud/PathProviderHUD.h"
 #include "NavigationSystem.h"
 #include "Engine.h"
-#include "Controller/PlayerController/ControllerBase.h"
 #include "GameModes/RTSGameModeBase.h"
 #include "NavMesh/NavMeshPath.h"
 #include "Widgets/UnitBaseHealthBar.h"
@@ -53,9 +50,6 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = RTSUnitTemplate)
 	ARTSGameModeBase* RTSGameMode;
 	
-	UPROPERTY(VisibleAnywhere, Category = RTSUnitTemplate)
-	AControllerBase* ControllerBase;
-
 	UPROPERTY(VisibleAnywhere, Category = RTSUnitTemplate)
 	UUnitBaseHealthBar* HealthBarWidget;
 	

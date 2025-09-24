@@ -154,24 +154,6 @@ void AVRController::AddOrUpdateCrosshair(const FVector& Location, bool bShouldBe
             }
         }
     }
-/*
-    if (CrosshairBillboard)
-    {
-        APawn* MyPawn = GetPawn();
-        if (MyPawn)
-        {
-            AVRUnitBase* VRUnit = Cast<AVRUnitBase>(MyPawn);
-            if (VRUnit && VRUnit->Camera)
-            {
-                // Calculate relative position from camera location
-                FVector CameraLocation = VRUnit->Camera->GetComponentLocation();
-                FVector RelativePos = Location - CameraLocation;
-                CrosshairBillboard->SetRelativeLocation(RelativePos);
-                CrosshairBillboard->SetVisibility(bShouldBeVisible);
-            }
-        }
-    }
-    */
 }
 
 void AVRController::AddOrUpdateCrosshairLight(const FVector& Location, bool bShouldBeVisible)
@@ -202,26 +184,6 @@ void AVRController::AddOrUpdateCrosshairLight(const FVector& Location, bool bSho
             }
         }
     }
-/*
-    if (CrosshairLight)
-    {
-        // Da das Licht jetzt an der Kamera hängt, verwenden wir RelativeLocation anstelle von WorldLocation.
-        APawn* MyPawn = GetPawn();
-        if (MyPawn)
-        {
-            AVRUnitBase* VRUnit = Cast<AVRUnitBase>(MyPawn);
-            if (VRUnit && VRUnit->Camera)
-            {
-                // Berechne relative Position vom Kamerapunkt aus
-                FVector CameraLocation = VRUnit->Camera->GetComponentLocation();
-                FVector RelativePos = Location - CameraLocation;
-                CrosshairLight->SetRelativeLocation(RelativePos);
-            }
-        }
-
-        // Sichtbarkeit abhängig vom Highlight-Zustand
-        CrosshairLight->SetVisibility(bShouldBeVisible);
-    }*/
 }
 
 
@@ -310,25 +272,33 @@ void AVRController::RemoveHighlightFromActor(AActor* ActorToRemove)
 FVector InitialHandLocation;
 FVector InitialProjectileLocation;
 
+// File-scope helpers to improve grab/ungrab robustness:
+// - GrabInitialTargetActor stores the target seen at the moment of Grab so Ungrab can still use it
+// - LastGrabToggleTime + GrabToggleCooldown provide a small debounce to avoid spurious double-toggles
+static AActor* GrabInitialTargetActor = nullptr;
+static float LastGrabToggleTime = 0.f;
+static const float GrabToggleCooldown = 0.15f; // 150ms debounce
+
 void AVRController::GrabProjectile(AVRUnitBase* VRUnit)
 {
     if (!VRUnit || !VRUnit->RightMotionController) return;
-   
+
+    // Very small debounce to avoid accidental double toggles when input events are noisy
+    if (GetWorld())
+    {
+        float Now = GetWorld()->GetTimeSeconds();
+        if (Now - LastGrabToggleTime < GrabToggleCooldown)
+            return;
+        LastGrabToggleTime = Now;
+    }
+
+    // Wenn bereits eines gegriffen ist, dann delegiere die Freigabe an UnGrabProjectile
     if (GrabbedProjectile != nullptr)
     {
-        UE_LOG(LogTemp, Log, TEXT("GrabbedProjectile back to nulptrs!"));
-
-        if (TargetActor)
-        {
-            GrabbedProjectile->InitForUnGrab(TargetActor, VRUnit, GrabbedProjectile->GetActorLocation());
-            GrabbedProjectile->MovementSpeed = 10.f;
-        }
-
-        
-        GrabbedProjectile = nullptr;
+        UnGrabProjectile(VRUnit);
         return;
     }
-    
+
     if (!TargetActor) return;
 
     AProjectile* Projectile = Cast<AProjectile>(TargetActor);
@@ -336,50 +306,93 @@ void AVRController::GrabProjectile(AVRUnitBase* VRUnit)
 
     APawn* MyPawn = GetPawn();
     if (!MyPawn) return;
-    
-    //AVRUnitBase* VRUnit = Cast<AVRUnitBase>(MyPawn);
-    //if (!VRUnit || !VRUnit->RightMotionController) return;
 
+    // Store which projectile is grabbed
     GrabbedProjectile = Projectile;
 
     // Store initial positions at the moment of grabbing
     InitialHandLocation = VRUnit->RightHandLocation;
     InitialProjectileLocation = Projectile->GetActorLocation();
 
+    // Also save the currently targeted actor so we have a fallback when releasing
+    GrabInitialTargetActor = TargetActor;
+
     FVector Direction = (VRUnit->GetActorLocation() - Projectile->GetActorLocation()).GetSafeNormal() * 10.f;
 
-    // Initialize or configure your projectile as needed
+    // Initialize or configure your projectile as needed; defensive: ensure projectile disables physics/collision while grabbed
     Projectile->InitForGrab(Direction, 20.f);
 
     UE_LOG(LogTemp, Log, TEXT("Projectile grabbed!"));
 }
 
 
+void AVRController::UnGrabProjectile(AVRUnitBase* VRUnit)
+{
+    if (!VRUnit || !VRUnit->RightMotionController) return;
+
+    if (GrabbedProjectile != nullptr)
+    {
+        // Defensive log
+        UE_LOG(LogTemp, Log, TEXT("UnGrabbing projectile."));
+
+        // If the grabbed projectile pointer is no longer valid (destroyed remotely etc.), clear and bail out.
+        if (!IsValid(GrabbedProjectile))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("GrabbedProjectile invalid or pending kill during UnGrab; clearing local reference."));
+            GrabbedProjectile = nullptr;
+            GrabInitialTargetActor = nullptr;
+            return;
+        }
+
+        // Use the currently targeted actor if present, otherwise fall back to the actor that was targeted when grabbing began.
+        AActor* ReleaseTarget = TargetActor ? TargetActor : GrabInitialTargetActor;
+
+        if (ReleaseTarget)
+        {
+            // Lass das Projektil zum aktuell anvisierten Target fliegen oder zum beim Grab gespeicherten Ziel
+            // InitForUnGrab setzt nun automatisch die MovementSpeed auf das Projectile-Property UnGrabMovementSpeed
+            GrabbedProjectile->InitForUnGrab(ReleaseTarget, VRUnit, GrabbedProjectile->GetActorLocation());
+            // InitForUnGrab stellt FollowTarget bereits korrekt ein; keine doppelte Zuweisung hier.
+        }
+        else
+        {
+            // Falls kein Target vorhanden: einfach loslassen, aber FollowTarget deaktiviert
+            GrabbedProjectile->InitForUnGrab(nullptr, VRUnit, GrabbedProjectile->GetActorLocation());
+            // InitForUnGrab wird FollowTarget auf false setzen, daher hier keine zusätzliche Zuweisung nötig.
+        }
+
+        // Clear saved target so it won't be reused accidentally
+        GrabInitialTargetActor = nullptr;
+
+        // Release the reference (client controller no longer manipulates the projectile)
+        GrabbedProjectile = nullptr;
+    }
+}
+
 void AVRController::HandleGrabbedProjectile()
 {
+    // Ensure grabbed projectile pointer is valid and hasn't been destroyed
     if (!GrabbedProjectile) return;
+    if (!IsValid(GrabbedProjectile))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("GrabbedProjectile became invalid during HandleGrabbedProjectile; clearing reference."));
+        GrabbedProjectile = nullptr;
+        GrabInitialTargetActor = nullptr;
+        return;
+    }
 
     APawn* MyPawn = GetPawn();
     if (!MyPawn) return;
-    
+
     AVRUnitBase* VRUnit = Cast<AVRUnitBase>(MyPawn);
     if (!VRUnit || !VRUnit->RightMotionController) return;
 
-    float MovementSpeed = 2.f;
-    FVector Direction = (VRUnit->GetActorLocation() - GrabbedProjectile->GetActorLocation()).GetSafeNormal() * MovementSpeed;
-    InitialProjectileLocation += Direction;
     // Calculate the offset from the initial hand position
     FVector HandOffset = VRUnit->RightHandLocation - InitialHandLocation;
 
-    // Calculate the distance between the projectile and the target
-    float DistanceToTarget = FVector::Dist(GrabbedProjectile->GetActorLocation(), VRUnit->GetActorLocation());
-    if(DistanceToTarget <= MovementSpeed)
-    {
-        //Impact(Target);
-        GrabbedProjectile->Destroy(true, false);
-        return;
-    }
-    // Apply offset to the projectile's initial position
-    FVector NewLocation = InitialProjectileLocation + HandOffset*GrabbedProjectileHandSensitivity;
-    GrabbedProjectile->SetActorLocation(NewLocation);
+    // Apply offset to the projectile's initial position without pulling toward the player
+    FVector NewLocation = InitialProjectileLocation + HandOffset * GrabbedProjectileHandSensitivity;
+
+    // Teleport the actor to the new location without generating sweeps/overlaps to avoid immediate OnOverlap destruction.
+    GrabbedProjectile->SetActorLocation(NewLocation, false, nullptr, ETeleportType::TeleportPhysics);
 }

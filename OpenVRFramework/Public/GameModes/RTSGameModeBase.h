@@ -51,9 +51,7 @@ class OPENVRFRAMEWORK_API ARTSGameModeBase : public AGameModeBase
 
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category = RTSUnitTemplate)
-	void SetTeamIdAndDefaultWaypoint(int Id, AWaypoint* Waypoint, ACameraControllerBase* CameraControllerBase);
-	
+
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = RTSUnitTemplate)
 	void SetTeamIdsAndWaypoints();
 

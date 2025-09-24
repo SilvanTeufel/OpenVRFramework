@@ -15,7 +15,6 @@
 #include "Perception/AiSenseConfig_Sight.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "Controller/PlayerController/ControllerBase.h"
 #include "Net/UnrealNetwork.h"
 #include "GAS/GameplayAbilityBase.h"
 #include "NavigationSystem.h"
@@ -61,19 +60,11 @@ void AUnitControllerBase::BeginPlay()
 
 	if(MyUnitBase)
 	{
-		if(!ControllerBase)
-		{
-			ControllerBase = Cast<AControllerBase>(GetWorld()->GetFirstPlayerController());
-			
-			if(ControllerBase)
-			{
-				MyUnitBase = Cast<AUnitBase>(GetPawn());
-				RTSGameMode = Cast<ARTSGameModeBase>(GetWorld()->GetAuthGameMode());
+		MyUnitBase = Cast<AUnitBase>(GetPawn());
+		RTSGameMode = Cast<ARTSGameModeBase>(GetWorld()->GetAuthGameMode());
 				
-				if(MyUnitBase->HealthWidgetComp)HealthBarWidget = Cast<UUnitBaseHealthBar>(MyUnitBase->HealthWidgetComp->GetUserWidgetObject());
+		if(MyUnitBase->HealthWidgetComp)HealthBarWidget = Cast<UUnitBaseHealthBar>(MyUnitBase->HealthWidgetComp->GetUserWidgetObject());
 			
-			}
-		}
 	}
 }
 
@@ -86,18 +77,9 @@ void AUnitControllerBase::OnPossess(APawn* PawN)
 	if(MyUnitBase)
 	{
 		SightRadius = MyUnitBase->SightRadius;
-		if(!ControllerBase)
-		{
-			ControllerBase = Cast<AControllerBase>(GetWorld()->GetFirstPlayerController());
-		
-			if(ControllerBase)
-			{
-				RTSGameMode = Cast<ARTSGameModeBase>(GetWorld()->GetAuthGameMode());
-				
-				if(MyUnitBase->HealthWidgetComp)HealthBarWidget = Cast<UUnitBaseHealthBar>(MyUnitBase->HealthWidgetComp->GetUserWidgetObject());
+		RTSGameMode = Cast<ARTSGameModeBase>(GetWorld()->GetAuthGameMode());
+		if(MyUnitBase->HealthWidgetComp)HealthBarWidget = Cast<UUnitBaseHealthBar>(MyUnitBase->HealthWidgetComp->GetUserWidgetObject());
 			
-			}
-		}
 	}
 
 }
@@ -117,13 +99,6 @@ void AUnitControllerBase::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	UnitControlStateMachine(MyUnitBase, DeltaSeconds);
-	
-	
-	if(ControllerBase && MyUnitBase)
-	{
-		//MyUnitBase->CheckVisibility(ControllerBase->SelectableTeamId);
-		//MyUnitBase->UpdateFogOfWarLight(ControllerBase->SelectableTeamId, SightRadius);
-	}
 }
 
 FRotator AUnitControllerBase::GetControlRotation() const
@@ -521,15 +496,11 @@ void AUnitControllerBase::DetectUnitsAndSetState(AUnitBase* UnitBase, float Delt
 
 	if(IsUnitDetected) return;
 	
-	if (ControllerBase)
-	{
 	
-		TArray<AActor*> DetectedUnits;
-		DetectUnitsFromGameMode(UnitBase, DetectedUnits, SightRadius, LoseSightRadius, DetectFriendlyUnits,ControllerBase->SelectableTeamId);
-		OnUnitDetected(DetectedUnits, SetState);
-		IsUnitDetected = true;
-
-	}
+	TArray<AActor*> DetectedUnits;
+	DetectUnitsFromGameMode(UnitBase, DetectedUnits, SightRadius, LoseSightRadius, DetectFriendlyUnits, UnitBase->TeamId);
+	OnUnitDetected(DetectedUnits, SetState);
+	IsUnitDetected = true;
 
 }
 
@@ -562,15 +533,10 @@ void AUnitControllerBase::Patrol(AUnitBase* UnitBase, float DeltaSeconds)
 			WaypointLocation =  FVector(WaypointLocation.X, WaypointLocation.Y, UnitBase->FlyHeight);
 		}
 
-		if(UnitBase->FollowPath)
-		{
-			const FVector ADirection = UKismetMathLibrary::GetDirectionUnitVector(UnitBase->GetActorLocation(), UnitBase->RunLocation);
-			UnitBase->AddMovementInput(ADirection, UnitBase->Attributes->GetRunSpeedScale());
-		}else
-		{
+		
 			const FVector ADirection = UKismetMathLibrary::GetDirectionUnitVector(UnitBase->GetActorLocation(), WaypointLocation);
 			UnitBase->AddMovementInput(ADirection, UnitBase->Attributes->GetRunSpeedScale());
-		}
+		
 	}
 	else
 	{
@@ -718,32 +684,12 @@ void AUnitControllerBase::LoseUnitToChase(AUnitBase* UnitBase)
 						UnitBase->UnitToChase = nullptr;
 					}
 				}
-	
-	
-
-	/*
-    if(!UnitBase->TeamId && UnitBase->FollowPath)
-    {
-        // Handle path reset logic.
-       ResetPath(UnitBase);
-    }
-    else
-    {
-        UnitBase->SetUEPathfinding = true;
-        UnitBase->SetUnitState(UnitBase->UnitStatePlaceholder);
-    	
-    }
-	*/
 }
 
 void AUnitControllerBase::ResetPath(AUnitBase* UnitBase)
 {
     UnitBase->RunLocationArray.Empty();
     UnitBase->RunLocationArrayIterator = 0;
-    UnitBase->DijkstraStartPoint = UnitBase->GetActorLocation();
-    UnitBase->DijkstraEndPoint = UnitBase->NextWaypoint->GetActorLocation();
-    UnitBase->DijkstraSetPath = true;
-    UnitBase->FollowPath = false;
     UnitBase->SetUEPathfinding = true;
     UnitBase->SetUnitState(UnitBase->UnitStatePlaceholder);
 }
@@ -764,7 +710,7 @@ void AUnitControllerBase::Attack(AUnitBase* UnitBase, float DeltaSeconds)
 		
 			if(!UnitBase->UseProjectile )
 			{
-				// Attack without Projectile
+
 				if(IsUnitToChaseInRange(UnitBase))
 				{
 					float NewDamage = UnitBase->Attributes->GetAttackDamage() - UnitBase->UnitToChase->Attributes->GetArmor();
@@ -789,7 +735,6 @@ void AUnitControllerBase::Attack(AUnitBase* UnitBase, float DeltaSeconds)
 				
 					if (!UnitBase->UnitToChase->UnitsToChase.Contains(UnitBase))
 					{
-						// If not, add UnitBase to the array
 						UnitBase->UnitToChase->UnitsToChase.Emplace(UnitBase);
 						UnitBase->UnitToChase->SetNextUnitToChase();
 					}
@@ -1213,15 +1158,12 @@ void AUnitControllerBase::SetUEPathfindingTo(AUnitBase* UnitBase, float DeltaSec
 	if(!UnitBase->SetUEPathfinding)
 		return;
 	
-	if (ControllerBase != nullptr)
-	{
+
 			UnitBase->SetWalkSpeed(UnitBase->Attributes->GetRunSpeed());
 			// You can use the controller here
 			// For example, you can use the MoveToLocationUEPathFinding function if it's defined in your controller class.
 			UnitBase->SetUEPathfinding = false;
-			ControllerBase->MoveToLocationUEPathFinding(UnitBase, Location);
-	
-	}
+			MoveToLocationUEPathFinding(UnitBase, Location, UnitBase);
 }
 
 bool AUnitControllerBase::MoveToLocationUEPathFinding(AUnitBase* Unit, const FVector& DestinationLocation, AUnitBase* UnitToIgnore)

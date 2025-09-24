@@ -6,9 +6,6 @@
 #include "LevelUnit.h"
 #include "GameFramework/Character.h"
 #include "Core/UnitData.h"
-#include "Actors/DijkstraCenter.h"
-#include "Actors/FogOfWarManager.h"
-#include "Core/DijkstraMatrix.h"
 #include "Actors/Projectile.h"
 #include "Components/PointLightComponent.h"
 #include "Components/SpotLightComponent.h"
@@ -29,12 +26,6 @@ public:
 	virtual void BeginPlay() override;
 
 	virtual void Destroyed() override;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=RTSUnitTemplate)
-	TSubclassOf<AFogOfWarManager> FogOfWarManagerClass;
-	
-	UFUNCTION(BlueprintCallable, Category=RTSUnitTemplate)
-	void SpawnFogOfWarManager();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = RTSUnitTemplate)
 	FVector FogManagerMultiplier = FVector(0.01, 0.01, 50);
@@ -99,9 +90,7 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void CheckViewport();
-
-	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
-	void CheckTeamVisibility();
+	
 
 	UFUNCTION(BlueprintCallable, Category = RTSUnitTemplate)
 	void SetCharacterVisibility(bool desiredVisibility);
@@ -126,9 +115,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = RTSUnitTemplate)
 	class AProjectile* Projectile;
 	
-	UPROPERTY(VisibleAnywhere, Category = RTSUnitTemplate)
-	AFogOfWarManager* SpawnedFogManager;
-
 	UPROPERTY(VisibleAnywhere, Category = RTSUnitTemplate)
 	APlayerController* OwningPlayerController;
 	
